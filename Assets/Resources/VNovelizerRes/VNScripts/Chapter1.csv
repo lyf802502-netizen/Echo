@@ -1,0 +1,7 @@
+ID,Speaker,HeadProfile,CharLeft,CharMid,CharRight,Text,Background,BGM,Voice,Command,Note
+1,Honoka,hide,hide,Honoka_Happy,hide,你好，我叫Honoka！！！,Sitting,piano lofi,False,"charjump(M,0.6,3,50)",第一条语句
+2,,,,,,请问你叫什么？,,,,,
+3,,,,,,,,,,,
+4,,,,,,,,,,,
+5,,,,,,,,,,,
+6,,,,,,,,,,,

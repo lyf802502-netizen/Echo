@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5505eadd43ebc114b9e9be075c8cb3a1, type: 3}
+  m_Name: Honoka
+  m_EditorClassIdentifier: 
+  CharacterID: Honoka
+  ElementSprites:
+  - Element: Default
+    Sprite: {fileID: -5877402996184321189, guid: a5d2d4db49512374ab8ca96d9636018c, type: 3}
+  - Element: Happy
+    Sprite: {fileID: -7385412646656166944, guid: 61dd787b936845942aeb1c8166c39365, type: 3}
+  - Element: Scared
+    Sprite: {fileID: 4611163001992159520, guid: 1a5785e1cd1140a43b9a426ae1b4cae3, type: 3}
+  - Element: Angry
+    Sprite: {fileID: 1520005128006454513, guid: 165cf591164450d4f98ecdcba3c59f38, type: 3}
+  HeadSprites: []
+  SpeakerBox: {fileID: 0}
+  HeadFrame: {fileID: 0}
+  scale: 0.7
+  offset: {x: 0, y: -50}

@@ -1,0 +1,295 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using System.Linq;
+using System.Reflection;
+using System;
+
+namespace VNovelizer.Core.Commands
+{
+    /// <summary>
+    /// 命令基类，所有具体命令都继承自这个类
+    /// </summary>
+    public abstract class VNCommand
+    {
+        /// <summary>
+        /// 命令名称
+        /// </summary>
+        public abstract string CommandName { get; }
+
+        /// <summary>
+        /// 执行命令
+        /// </summary>
+        public abstract bool Execute(string args);
+
+        /// <summary>
+        /// 异步执行命令
+        /// </summary>
+        public virtual IEnumerator ExecuteAsync(string args)
+        {
+            Execute(args);
+            yield break;
+        }
+
+        /// <summary>
+        /// 命令执行期间是否阻止玩家点击屏幕来跳过当前演出
+        /// 默认不阻止，只有特殊命令需要阻止时才返回 true
+        /// </summary>
+        public virtual bool BlockAdvanceInput => false;
+
+        /// <summary>
+        /// [新增] 中断命令接口
+        /// 当玩家点击屏幕需要跳过当前演出时调用
+        /// </summary>
+        public virtual void Interrupt() { }
+
+        public virtual void Simulate(string args) { }
+    }
+
+    /// <summary>
+    /// 命令管理器，负责注册、执行和中断命令
+    /// </summary>
+    public class CommandManager : BaseManager<CommandManager>
+    {
+        // 命令映射表
+        private Dictionary<string, VNCommand> _commandMap = new Dictionary<string, VNCommand>();
+
+        // [新增] 正在运行的命令列表
+        private List<VNCommand> _runningCommands = new List<VNCommand>();
+
+        // [新增] 是否有命令正在运行
+        public bool IsRunning => _runningCommands.Count > 0;
+
+        // [新增] 命令管理器会询问所有正在执行的命令，只要其中任何一个说 “我要锁住点击”，就返回 true
+        public bool BlockAdvanceInput => _runningCommands.Any(command => command != null && command.BlockAdvanceInput);
+
+        /// <summary>
+        /// 初始化
+        /// </summary>
+        public void Init()
+        {
+            RegisterDefaultCommands();
+            RegisterCustomCommandsViaReflection();
+        }
+
+        private void RegisterDefaultCommands()
+        {
+            RegisterCommand(new LoadScriptCommand());
+            RegisterCommand(new UnlockCGCommand());
+            RegisterCommand(new UnlockMusicCommand());
+            RegisterCommand(new UnlockSceneCommand());
+            RegisterCommand(new ConfigCommand());
+            RegisterCommand(new ShakeCommand());
+            RegisterCommand(new WaitCommand());
+            RegisterCommand(new JumpCommand());
+            RegisterCommand(new LoadSceneCommand());
+            RegisterCommand(new SetBoolFlagCommand());
+            RegisterCommand(new SetIntFlagCommand());
+            RegisterCommand(new SetStringFlagCommand());
+            RegisterCommand(new CharJumpCommand());
+            RegisterCommand(new ChoiceCommand());
+            RegisterCommand(new BgFadeCommand());
+            RegisterCommand(new SetTextSpeedCommand());
+            RegisterCommand(new SetAutoSpeedCommand());
+            RegisterCommand(new TColorCommand());
+            RegisterCommand(new TSizeCommand());
+            RegisterCommand(new CharFadeInCommand());
+            RegisterCommand(new CharFadeOutCommand());
+            RegisterCommand(new CharFlipCommand());
+            RegisterCommand(new CharMoveCommand());
+            RegisterCommand(new SetCharTransCommand());
+            RegisterCommand(new PlaySFXCommand());
+            RegisterCommand(new PlayVideoCommand());
+            RegisterCommand(new PlayParticleCommand());
+            RegisterCommand(new StopParticleCommand());
+            RegisterCommand(new ShowPromptCommand());
+            RegisterCommand(new PlayAnimCommand());
+            RegisterCommand(new StopAnimCommand());
+
+        }
+
+        private void RegisterCustomCommandsViaReflection()
+        {
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+            foreach (var assembly in assemblies)
+            {
+
+                string name = assembly.GetName().Name;
+                if (name.StartsWith("Unity") || name.StartsWith("System") || name.StartsWith("mscorlib"))
+                    continue;
+
+                var commandTypes = assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(VNCommand)) && !type.IsAbstract);
+
+                foreach (var type in commandTypes)
+                {
+                    try
+                    {
+                        VNCommand cmdInstance = (VNCommand)Activator.CreateInstance(type);
+
+                        if (cmdInstance != null && !string.IsNullOrEmpty(cmdInstance.CommandName))
+                        {
+                            string cmdNameKey = cmdInstance.CommandName.ToLower();
+
+                            if (!_commandMap.ContainsKey(cmdNameKey))
+                            {
+                                RegisterCommand(cmdInstance);
+                                Debug.Log($"[CommandManager] 自动注册命令成功 {type.Name} => {cmdNameKey}");
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"[CommandManager] 自动注册命令失败 {type.Name}: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        public void RegisterCommand(VNCommand command)
+        {
+            if (command != null && !string.IsNullOrEmpty(command.CommandName))
+            {
+                string commandName = command.CommandName.ToLower();
+                _commandMap[commandName] = command;
+            }
+        }
+
+        public bool ExecuteCommand(string commandString)
+        {
+            if (string.IsNullOrEmpty(commandString)) return false;
+
+            int startIndex = commandString.IndexOf('(');
+            int endIndex = commandString.LastIndexOf(')');
+
+            if (startIndex > 0 && endIndex > startIndex)
+            {
+                string cmd = commandString.Substring(0, startIndex);
+                string args = commandString.Substring(startIndex + 1, endIndex - startIndex - 1);
+                return ExecuteSingleCommand(cmd, args);
+            }
+            return false;
+        }
+
+        public void SimulateCommands(string commandString)
+        {
+            if (string.IsNullOrEmpty(commandString)) return;
+
+            string[] actions = commandString.Split('&');
+            foreach (string action in actions)
+            {
+                string trimmedAction = action.Trim();
+                if (string.IsNullOrEmpty(trimmedAction)) continue;
+
+                int start = trimmedAction.IndexOf('(');
+                int end = trimmedAction.LastIndexOf(')');
+
+                if (start > 0 && end > start)
+                {
+                    string cmd = trimmedAction.Substring(0, start).ToLower();
+                    string args = trimmedAction.Substring(start + 1, end - start - 1);
+
+                    if (_commandMap.ContainsKey(cmd))
+                    {
+                        // 只调用 Simulate
+                        _commandMap[cmd].Simulate(args);
+                    }
+                }
+            }
+        }
+
+        private bool ExecuteSingleCommand(string cmd, string args)
+        {
+            if (string.IsNullOrEmpty(cmd)) return false;
+
+            string commandName = cmd.ToLower();
+            if (_commandMap.ContainsKey(commandName))
+            {
+                // 同步执行不计入 _runningCommands，因为它是瞬间完成的
+                return _commandMap[commandName].Execute(args);
+            }
+            else
+            {
+                Debug.LogWarning($"未找到命令: {cmd}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 异步执行单个命令 (核心修改)
+        /// </summary>
+        public IEnumerator ExecuteSingleCommandAsync(string cmd, string args)
+        {
+            if (string.IsNullOrEmpty(cmd)) yield break;
+
+            string commandName = cmd.ToLower();
+            if (_commandMap.ContainsKey(commandName))
+            {
+                VNCommand command = _commandMap[commandName];
+
+                // 1. 记录正在运行
+                if (!_runningCommands.Contains(command))
+                    _runningCommands.Add(command);
+
+                // 2. 等待执行
+                yield return command.ExecuteAsync(args);
+
+                // 3. 执行完毕，移除记录
+                if (_runningCommands.Contains(command))
+                    _runningCommands.Remove(command);
+            }
+            else
+            {
+                Debug.LogWarning($"未找到命令: {cmd}");
+            }
+        }
+
+        public void ExecuteCommands(string commandString)
+        {
+            if (string.IsNullOrEmpty(commandString)) return;
+            string[] actions = commandString.Split('&');
+            foreach (string action in actions)
+            {
+                string trimmedAction = action.Trim();
+                if (!string.IsNullOrEmpty(trimmedAction)) ExecuteCommand(trimmedAction);
+            }
+        }
+
+        public IEnumerator ExecuteCommandsAsync(string commandString)
+        {
+            if (string.IsNullOrEmpty(commandString)) yield break;
+
+            string[] actions = commandString.Split('&');
+            foreach (string action in actions)
+            {
+                string trimmedAction = action.Trim();
+                if (!string.IsNullOrEmpty(trimmedAction))
+                {
+                    int startIndex = trimmedAction.IndexOf('(');
+                    int endIndex = trimmedAction.LastIndexOf(')');
+
+                    if (startIndex > 0 && endIndex > startIndex)
+                    {
+                        string cmd = trimmedAction.Substring(0, startIndex);
+                        string args = trimmedAction.Substring(startIndex + 1, endIndex - startIndex - 1);
+                        yield return ExecuteSingleCommandAsync(cmd, args);
+                    }
+                }
+            }
+        }
+
+        // [新增] 中断所有命令
+        public void InterruptAll()
+        {
+            if (_runningCommands.Count == 0) return;
+
+            // 倒序遍历，防止在中断过程中集合被修改导致报错
+            for (int i = _runningCommands.Count - 1; i >= 0; i--)
+            {
+                _runningCommands[i].Interrupt();
+            }
+
+            _runningCommands.Clear();
+        }
+    }
+}

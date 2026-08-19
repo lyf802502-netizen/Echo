@@ -1,0 +1,17 @@
+{
+    "name": "Game.Rhythm.Runtime",
+    "rootNamespace": "Game.Rhythm.Runtime",
+    "references": [
+        "GUID:27821b93c691aec47ae1770ba560ed6b",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

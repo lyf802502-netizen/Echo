@@ -1,0 +1,29 @@
+{
+    "name": "VNovelizer.Editor",
+    "rootNamespace": "",
+    "references": [
+        "VNovelizer.Runtime",
+        "ExcelDataReader",
+        "Unity.Localization.Editor",
+        "Unity.Localization",
+        "Unity.ResourceManager"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.localization",
+            "expression": "[0.0.0,9999.9999]",
+            "define": "VN_LOCALIZATION"
+        }
+    ],
+    "noEngineReferences": false
+}
+

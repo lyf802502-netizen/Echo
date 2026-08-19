@@ -1,0 +1,37 @@
+{
+  "name": "com.fakecorps.vnovelizer",
+  "version": "0.1.4",
+  "displayName": "VNovelizer - Visual Novel Framework",
+  "description": "A lightweight, Excel-driven Visual Novel framework for Unity. Features command-based direction, UI panels, save/load, gallery, and per-script localization via Unity Localization (one StringTableCollection per script). Requires TextMeshPro, Input System, and Unity Localization.",
+  "unity": "2022.3",
+  "unityRelease": "0f1",
+  "documentationUrl": "https://my.feishu.cn/wiki/space/7589983850810346443",
+  "changelogUrl": "https://github.com/Fakecorps/VNovelizer/releases",
+  "licensesUrl": "https://github.com/Fakecorps/VNovelizer/blob/main/LICENSE",
+  "keywords": [
+    "visual novel",
+    "avg",
+    "framework",
+    "excel",
+    "dialogue",
+    "story",
+    "galgame",
+    "no-code",
+    "localization",
+    "i18n"
+  ],
+  "author": {
+    "name": "Fakecorps",
+    "email": "liaozh66@outlook.com",
+    "url": "https://github.com/Fakecorps"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fakecorps/VNovelizer.git"
+  },
+  "dependencies": {
+    "com.unity.textmeshpro": "3.0.6",
+    "com.unity.inputsystem": "1.7.0",
+    "com.unity.localization": "1.5.2"
+  }
+}

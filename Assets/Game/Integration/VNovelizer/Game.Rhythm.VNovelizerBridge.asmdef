@@ -1,0 +1,17 @@
+{
+    "name": "Game.Rhythm.VNovelizerBridge",
+    "rootNamespace": "Game.Rhythm.VNovelizerBridge",
+    "references": [
+        "GUID:1dfde0b3bc908a94bb0557567eeccce5",
+        "GUID:81d22c654bf5bb549a8ad6e8bc0436aa"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
