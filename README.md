@@ -24,7 +24,7 @@
 
 ### 环境要求
 * Unity Editor 版本：`2023.1.0f1c1`
-* Visual Stuidio 版本：`VS 2026`
+* 代码编辑器：`Visual Studio 2022` 及以上版本（或其他支持最新 C# 语法的 IDE，如 `Rider / VS Code`）
 
 ### 启动步骤
 1. **克隆项目：** 
