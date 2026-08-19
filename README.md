@@ -34,7 +34,7 @@
 ### 启动步骤
 1. **克隆项目：** 
    ```bash
-   git clone https://github.com/[你的GitHub用户名]/Echo.git
+   git clone https://github.com/lyf802502-netizen/Echo.git
    ```
 2. **打开工程：** 在 Unity Hub 中点击 `Open`，选择克隆下来的 `Echo` 文件夹。
 3. **进入游戏：** 引擎加载完毕后，在 Project 窗口中找到 `Assets/Scenes/` 目录。
