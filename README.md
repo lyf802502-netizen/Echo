@@ -8,7 +8,9 @@
 > 我们的工作，是为这个失谐的世界，重新调音。<br>
 
 ## 🎵 游戏内容展示
-<img alt="StartScene" src="https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width = "50%"/>
+| 场景展示 | 剧情对话 | 音乐打歌 | 结算界面 |
+| :---: | :---: | :---: | :---: |
+| <img alt="StartScene" src="https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width = "200%"/> | <img alt="StartScene" src="https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width = "200%"/> | <img alt="StartScene" src="https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width = "200%"/> | <img alt="StartScene" src="https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width = "200%"/>
 
 ## 🎮 游戏简介
 （在这里填写：用 1-2 段话详细描述你的游戏玩法和背景故事。例如：玩家将扮演...在音乐的节奏中体验...）
