@@ -1,8 +1,23 @@
 # Echo
 
-> 一款基于 Unity 开发的剧情交互与音乐节奏相结合的独立游戏。
+> 世界从未安静过。<br>
+> 每一种情绪，都有它的频率。<br>
+> 愤怒是低沉的轰鸣，悲伤是绵长的呜咽，焦虑是无序的杂音……<br>
+> 当这些声音汇聚在一起，就成了这座城市的底色。<br>
+> 而我们，是一支特殊的乐队。<br>
+> 我们的工作，是为这个失谐的世界，重新调音。<br>
 
-![游戏截图/GIF动画展示](在这里放入你的图片或GIF链接)
+## 🎵 游戏内容展示
+<p align="center">
+  <img src = "https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width = "48%" title = "开始画面" alt = "开始画面"/>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src = "https://github.com/user-attachments/assets/b00156a5-0645-4c46-8f9a-4d6c395e34e5" width = "48%" title = "剧情画面" alt = "剧情画面"/>
+  <br>
+  <img src = "https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width = "48%" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src = "https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width = "48%" />
+
+</p>
 
 ## 🎮 游戏简介
 （在这里填写：用 1-2 段话详细描述你的游戏玩法和背景故事。例如：玩家将扮演...在音乐的节奏中体验...）
@@ -13,7 +28,7 @@
 * **流畅的加载架构：** 基于多线程异步的 Loading 进度回调与广播逻辑，实现无缝且丝滑的场景切换体验。
 
 ## 🛠️ 技术栈与架构亮点
-* **游戏引擎：** Unity (请填写具体版本，例如：2022.3.x LTS)
+* **游戏引擎：** Unity (2023.1.0f1)
 * **编程语言：** C#
 * **亮点展示：**
   * **异步加载模块：** 将数据加载与 UI 进度展示完美解耦。
@@ -23,20 +38,24 @@
 ## 🚀 如何运行本项目
 
 ### 环境要求
-* Unity Editor 版本：`[在此填写你的Unity版本号，如 2022.3.15f1]`
-* （如果使用了特定的付费插件，可以在这里注明，或说明已替换为开源版本）
+* **Unity Editor 版本：** `2023.1.0f1` 或更高版本
+* **TextMeshPro** (Unity 内置)
+* **Input System** (Unity 内置)
+* **代码编辑器：** `Visual Studio 2022` 及以上版本（或其他支持最新 C# 语法的 IDE，如 `Rider / VS Code`）
 
 ### 启动步骤
 1. **克隆项目：** 
    ```bash
-   git clone https://github.com/[你的GitHub用户名]/Echo.git
+   git clone https://github.com/lyf802502-netizen/Echo.git
    ```
 2. **打开工程：** 在 Unity Hub 中点击 `Open`，选择克隆下来的 `Echo` 文件夹。
 3. **进入游戏：** 引擎加载完毕后，在 Project 窗口中找到 `Assets/Scenes/` 目录。
-4. **开始游玩：** 双击打开初始场景 `[填写你的初始场景名，如 Init.unity]`，点击上方的 Play 按钮即可体验。
+4. **开始游玩：** 双击打开初始场景 `GameStartScene`，点击场景下方的 Play 按钮即可开始体验。
 
 ## 👨‍💻 关于作者
-* **开发者：** [你的名字/昵称]
-* **求职意向：** 客户端开发工程师 / 游戏开发工程师
-* **联系方式：** [你的邮箱]
-* **个人主页/作品集：** [如果有可以放链接]
+* **开发者：** 小林同学（Lin_Catom）
+* **求职意向：** 游戏客户端开发 / Unity 开发
+* **联系方式：** lyf502802@163.com
+* **个人主页 / 作品集：** [如果有可以放链接]
+
+## 📂 资源致谢
