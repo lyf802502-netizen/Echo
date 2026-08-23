@@ -13,6 +13,8 @@
   <img src="https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width="48%" title="开始画面" alt="开始画面"/>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="https://github.com/user-attachments/assets/b00156a5-0645-4c46-8f9a-4d6c395e34e5" width="48%" title="剧情画面" alt="剧情画面"/>
+  <br>
+  <img src="https://github.com/user-attachments/assets/c5b58199-64f1-4159-a424-9eb384074be8" width="48%" title="音游画面" alt="音游画面"/>
 </p>
 
 ## 🎮 游戏简介
