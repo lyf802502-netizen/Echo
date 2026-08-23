@@ -7,7 +7,7 @@
 > 而我们，是一支特殊的乐队。<br>
 > 我们的工作，是为这个失谐的世界，重新调音。<br>
 
-## 游戏内容展示
+## 🎵 游戏内容展示
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width="48%" title="开始画面" alt="开始画面"/>
@@ -60,7 +60,7 @@
 - **求职意向**：游戏客户端开发 / Unity 开发
 - **联系方式**：lyf502802@163.com
 
-## 资源致谢
+## 📂 资源致谢
 
 - Unity、TextMeshPro、Input System
 - Koreographer（Sonic Bloom）
