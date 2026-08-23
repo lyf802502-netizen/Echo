@@ -54,14 +54,14 @@ namespace VNovelizer.Core.Commands
         // 命令映射表
         private Dictionary<string, VNCommand> _commandMap = new Dictionary<string, VNCommand>();
 
-        // [新增] 正在运行的命令列表
-        private List<VNCommand> _runningCommands = new List<VNCommand>();
+        // 正在运行的异步命令（同一命令类型可能并行多条，用引用计数）
+        private Dictionary<VNCommand, int> _runningCommandRefCount = new Dictionary<VNCommand, int>();
 
-        // [新增] 是否有命令正在运行
-        public bool IsRunning => _runningCommands.Count > 0;
+        public bool IsRunning => _runningCommandRefCount.Count > 0;
 
-        // [新增] 命令管理器会询问所有正在执行的命令，只要其中任何一个说 “我要锁住点击”，就返回 true
-        public bool BlockAdvanceInput => _runningCommands.Any(command => command != null && command.BlockAdvanceInput);
+        // 命令管理器会询问所有正在执行的命令，只要其中任何一个要求锁住点击，就返回 true。
+        // _runningCommandRefCount 的枚举项是 KeyValuePair，因此必须枚举 Keys。
+        public bool BlockAdvanceInput => _runningCommandRefCount.Keys.Any(command => command != null && command.BlockAdvanceInput);
 
         /// <summary>
         /// 初始化
@@ -205,7 +205,7 @@ namespace VNovelizer.Core.Commands
             string commandName = cmd.ToLower();
             if (_commandMap.ContainsKey(commandName))
             {
-                // 同步执行不计入 _runningCommands，因为它是瞬间完成的
+                // 同步执行不计入 _runningCommandRefCount（仅异步路径计数）
                 return _commandMap[commandName].Execute(args);
             }
             else
@@ -227,21 +227,52 @@ namespace VNovelizer.Core.Commands
             {
                 VNCommand command = _commandMap[commandName];
 
-                // 1. 记录正在运行
-                if (!_runningCommands.Contains(command))
-                    _runningCommands.Add(command);
+                if (!_runningCommandRefCount.ContainsKey(command))
+                    _runningCommandRefCount[command] = 0;
+                _runningCommandRefCount[command]++;
 
-                // 2. 等待执行
                 yield return command.ExecuteAsync(args);
 
-                // 3. 执行完毕，移除记录
-                if (_runningCommands.Contains(command))
-                    _runningCommands.Remove(command);
+                if (_runningCommandRefCount.ContainsKey(command))
+                {
+                    _runningCommandRefCount[command]--;
+                    if (_runningCommandRefCount[command] <= 0)
+                        _runningCommandRefCount.Remove(command);
+                }
             }
             else
             {
                 Debug.LogWarning($"未找到命令: {cmd}");
             }
+        }
+
+        /// <summary>
+        /// 同一行里连续的 CharFadeIn / CharFadeOut 并行执行（例如多站位同时淡入）。
+        /// </summary>
+        private IEnumerator ExecuteCharFadeParallelBatch(List<(string cmd, string args)> batch)
+        {
+            if (batch.Count <= 1)
+            {
+                if (batch.Count == 1)
+                    yield return ExecuteSingleCommandAsync(batch[0].cmd, batch[0].args);
+                yield break;
+            }
+
+            int remaining = batch.Count;
+            var mono = MonoManager.GetInstance();
+            foreach (var item in batch)
+            {
+                mono.StartCoroutine(CharFadeParallelRunner(item.cmd, item.args, () => remaining--));
+            }
+
+            while (remaining > 0)
+                yield return null;
+        }
+
+        private IEnumerator CharFadeParallelRunner(string cmd, string args, Action onDone)
+        {
+            yield return ExecuteSingleCommandAsync(cmd, args);
+            onDone?.Invoke();
         }
 
         public void ExecuteCommands(string commandString)
@@ -260,20 +291,44 @@ namespace VNovelizer.Core.Commands
             if (string.IsNullOrEmpty(commandString)) yield break;
 
             string[] actions = commandString.Split('&');
+            var parsed = new List<(string cmd, string args)>();
             foreach (string action in actions)
             {
                 string trimmedAction = action.Trim();
-                if (!string.IsNullOrEmpty(trimmedAction))
-                {
-                    int startIndex = trimmedAction.IndexOf('(');
-                    int endIndex = trimmedAction.LastIndexOf(')');
+                if (string.IsNullOrEmpty(trimmedAction)) continue;
 
-                    if (startIndex > 0 && endIndex > startIndex)
+                int startIndex = trimmedAction.IndexOf('(');
+                int endIndex = trimmedAction.LastIndexOf(')');
+
+                if (startIndex > 0 && endIndex > startIndex)
+                {
+                    string cmd = trimmedAction.Substring(0, startIndex);
+                    string args = trimmedAction.Substring(startIndex + 1, endIndex - startIndex - 1);
+                    parsed.Add((cmd, args));
+                }
+            }
+
+            int i = 0;
+            while (i < parsed.Count)
+            {
+                string cmdLower = parsed[i].cmd.ToLower();
+                if (cmdLower == "charfadein" || cmdLower == "charfadeout")
+                {
+                    var batch = new List<(string cmd, string args)>();
+                    while (i < parsed.Count)
                     {
-                        string cmd = trimmedAction.Substring(0, startIndex);
-                        string args = trimmedAction.Substring(startIndex + 1, endIndex - startIndex - 1);
-                        yield return ExecuteSingleCommandAsync(cmd, args);
+                        var entry = parsed[i];
+                        string cl = entry.cmd.ToLower();
+                        if (cl != "charfadein" && cl != "charfadeout") break;
+                        batch.Add(entry);
+                        i++;
                     }
+                    yield return ExecuteCharFadeParallelBatch(batch);
+                }
+                else
+                {
+                    yield return ExecuteSingleCommandAsync(parsed[i].cmd, parsed[i].args);
+                    i++;
                 }
             }
         }
@@ -281,15 +336,13 @@ namespace VNovelizer.Core.Commands
         // [新增] 中断所有命令
         public void InterruptAll()
         {
-            if (_runningCommands.Count == 0) return;
+            if (_runningCommandRefCount.Count == 0) return;
 
-            // 倒序遍历，防止在中断过程中集合被修改导致报错
-            for (int i = _runningCommands.Count - 1; i >= 0; i--)
-            {
-                _runningCommands[i].Interrupt();
-            }
+            var commands = new List<VNCommand>(_runningCommandRefCount.Keys);
+            for (int i = commands.Count - 1; i >= 0; i--)
+                commands[i].Interrupt();
 
-            _runningCommands.Clear();
+            _runningCommandRefCount.Clear();
         }
     }
 }

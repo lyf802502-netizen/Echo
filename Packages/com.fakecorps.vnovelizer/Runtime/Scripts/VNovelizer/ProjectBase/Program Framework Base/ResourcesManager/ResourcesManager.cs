@@ -23,7 +23,7 @@ public class ResourcesManager : BaseManager<ResourcesManager>
     }
 
     //异步加载资源
-    public void LoadAsync<T>(string name, UnityAction<T> callback) where T : UnityEngine.Object
+    public void LoadAsync<T>(string name,UnityAction<T> callback) where T : UnityEngine.Object
     {
         MonoManager.GetInstance().StartCoroutine(ILoadAsync<T>(name,callback));
     }

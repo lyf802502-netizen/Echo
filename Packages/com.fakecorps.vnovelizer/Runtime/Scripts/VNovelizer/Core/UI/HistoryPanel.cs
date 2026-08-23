@@ -147,12 +147,15 @@ public class HistoryPanel : BasePanel
         TMP_Text dialogueText = contentTrans.Find("H_DialogueBox/H_Dialogue").GetComponent<TMP_Text>();
         Button replayButton = contentTrans.Find("H_Replay").GetComponent<Button>();
 
-        //处理 Speaker 重复
-        bool isSameSpeaker = (prevEntry != null && prevEntry.Speaker == entry.Speaker);
+        // [2026-08-21] 历史记录按当前条目的说话人独立决定姓名框，不能复用上一条记录的显示状态。
+        // 空姓名和 "hide" 表示旁白/隐藏说话人；对象池复用时同时清空残留姓名文本。
+        bool hasSpeaker = !string.IsNullOrWhiteSpace(entry.Speaker) &&
+                          !string.Equals(entry.Speaker.Trim(), "hide", System.StringComparison.OrdinalIgnoreCase);
 
-        if (isSameSpeaker)
+        if (!hasSpeaker)
         {
             speakerBox.gameObject.SetActive(false);
+            speakerText.text = string.Empty;
         }
         else
         {

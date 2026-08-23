@@ -8,7 +8,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.EventSystems;
 using VNovelizer.Core.API;
-using PrimeTween;
+using VNovelizer.Core.Compat;
 using VNovelizer.Core;
 using VNovelizer.Core.Diagnostics;
 
@@ -58,7 +58,7 @@ public class VNGameplayPanel : BasePanel
 
     [Header("UI Components")]
     [SerializeField] private Image continueIcon;
-    private Sequence _iconSequence;
+    private CompatSequence _iconSequence;
     // 功能按钮
     [SerializeField] private Button autoButton;
     [SerializeField] private Button skipButton;
@@ -77,7 +77,6 @@ public class VNGameplayPanel : BasePanel
     private float autoSpeed;
     private bool useNewInputSystem = true; // 默认使用新系统
     private float _lastSkipAdvanceUnscaledTime;
-    private float _ignoreConfirmUntilUnscaledTime;
 
     //Notification
     [Header("Prompt System")]
@@ -86,7 +85,7 @@ public class VNGameplayPanel : BasePanel
 
     private Coroutine autoPlayCoroutine;
 
-    private Tween _typewriterTween;
+    private CompatTween _typewriterTween;
 
     // UI根节点
     [SerializeField] private Transform uiRoot;
@@ -141,9 +140,6 @@ public class VNGameplayPanel : BasePanel
         // 检查关键组件是否获取成功
         if (dialogueText == null) Debug.LogError("DialougeText not found in VNGameplayPanel");
         if (speakerText == null) Debug.LogError("SpeakerText not found in VNGameplayPanel");
-
-        ConfigureDialogueTextLayout();
-
 
         if (continueIcon == null)
             continueIcon = transform.Find("UIRoot/DialogueBox/ContinueIcon")?.GetComponent<Image>();
@@ -274,6 +270,7 @@ public class VNGameplayPanel : BasePanel
 
     private void Update()
     {
+
         if (isSkipping && !isTextTyping)
         {
             if (!isAutoPlaying && !isUIHidden)
@@ -469,6 +466,9 @@ public class VNGameplayPanel : BasePanel
             return;
         }
         
+        // 互斥：开启快进前，先关闭自动播放
+        StopAutoPlay();
+        
         VNDebug.LogVerbose("快进模式开启");
         isSkipping = true;
         UpdateSkipButtonState();
@@ -488,7 +488,15 @@ public class VNGameplayPanel : BasePanel
     // Auto事件 - 激活自动播放
     public void OnAuto(InputAction.CallbackContext context)
     {
+        // 互斥：开启自动播放前，先关闭快进
+        if (!VNManager.GetInstance().IsAutoPlaying())
+        {
+            StopSkip();
+        }
         VNManager.GetInstance().ToggleAutoPlay();
+        // 同步 UI 状态（修复：原代码不同步按钮文字）
+        isAutoPlaying = VNManager.GetInstance().IsAutoPlaying();
+        UpdateAutoButtonState();
     }
 
     // Hide事件 - 隐藏/显示UI
@@ -637,7 +645,7 @@ public class VNGameplayPanel : BasePanel
     {
         if (!GameStateManager.GetInstance().CanInteractGameplay())
             return;
-        if (Time.unscaledTime < _ignoreConfirmUntilUnscaledTime)
+        if (IsPointerOverGameObjectNow())
             return;
         if (!isAutoPlaying && !isUIHidden)
         {
@@ -650,6 +658,8 @@ public class VNGameplayPanel : BasePanel
     {
         if (!isSkipping)
         {
+            // 互斥：开启快进前，先关闭自动播放
+            StopAutoPlay();
             isSkipping = true;
             UpdateSkipButtonState();
             Time.timeScale = 10f;
@@ -668,6 +678,11 @@ public class VNGameplayPanel : BasePanel
 
     private void OnAutoFallback()
     {
+        // 互斥：开启自动播放前，先关闭快进
+        if (!isAutoPlaying)
+        {
+            StopSkip();
+        }
         isAutoPlaying = !isAutoPlaying;
         UpdateAutoButtonState();
     }
@@ -794,11 +809,20 @@ public class VNGameplayPanel : BasePanel
         //隐藏继续图标
         HideContinueIcon();
 
+        // duration <= 0 时直接显示全部文字（速度最快档 / 空文本）
+        if (duration <= 0f)
+        {
+            dialogueText.maxVisibleCharacters = 99999;
+            OnTypewriterComplete();
+            return;
+        }
+
         // 2. 启动打字机 (使用 Linear 匀速)
-        _typewriterTween = Tween.Custom(0, text.Length, duration, onValueChange: (val) =>
+        // [2026-08-21] 使用 Linear 匀速曲线，避免默认缓动导致打字速度先快后慢。
+        _typewriterTween = AnimationCompat.CustomFloat(0f, (float)text.Length, duration, onValueChange: (val) =>
         {
             dialogueText.maxVisibleCharacters = Mathf.FloorToInt(val);
-        }, ease: Ease.Linear)
+        }, Ease.Linear)
         .OnComplete(OnTypewriterComplete);
     }
 
@@ -851,12 +875,12 @@ public class VNGameplayPanel : BasePanel
     /// </summary>
     public void HideSpeakerBox()
     {
-        if(speakerBox.IsActive())
+        if (speakerBox.IsActive())
         {
-            speakerBox.gameObject.SetActive(false);        
+            speakerBox.gameObject.SetActive(false);
         }
 
-        if(speakerText != null)
+        if (speakerText != null)
         {
             speakerText.text = "";
         }
@@ -1143,8 +1167,18 @@ public class VNGameplayPanel : BasePanel
     // 按钮点击事件
     private void OnAutoButtonClick()
     {
-        if (GameStateManager.GetInstance().CanInteractGameplay())
-            VNManager.GetInstance().ToggleAutoPlay();
+        if (!GameStateManager.GetInstance().CanInteractGameplay())
+            return;
+
+        // 互斥：开启自动播放前，先关闭快进
+        if (!isAutoPlaying)
+        {
+            StopSkip();
+        }
+
+        VNManager.GetInstance().ToggleAutoPlay();
+        isAutoPlaying = !isAutoPlaying;
+        UpdateAutoButtonState();
     }
 
     private void OnSkipButtonClick()
@@ -1163,12 +1197,18 @@ public class VNGameplayPanel : BasePanel
             return;
         }
         
+        // 互斥：开启快进前，先关闭自动播放
+        if (!isSkipping)
+        {
+            StopAutoPlay();
+        }
+        
         // 切换快进状态
         isSkipping = !isSkipping;
         UpdateSkipButtonState();
         
         // 如果激活快进且当前没有打字效果，立即触发一次快进（和按住Ctrl一样的效果）
-        if (isSkipping && !isTextTyping && !isAutoPlaying && !isUIHidden)
+        if (isSkipping && !isTextTyping && !isUIHidden)
         {
             VNManager.GetInstance().NextLine();
         }
@@ -1254,6 +1294,38 @@ public class VNGameplayPanel : BasePanel
         }
     }
 
+    /// <summary>
+    /// 停止快进模式（恢复 TimeScale + 更新按钮状态）
+    /// 用于互斥切换：开启 AutoPlay 时先调用此方法关闭 Skip
+    /// </summary>
+    private void StopSkip()
+    {
+        if (!isSkipping) return;
+        isSkipping = false;
+        UpdateSkipButtonState();
+        Time.timeScale = 1f;
+        // 同步 VNManager 内部状态
+        if (VNManager.GetInstance().IsSkipping())
+        {
+            VNManager.GetInstance().ToggleSkip();
+        }
+    }
+
+    /// <summary>
+    /// 停止自动播放（同步 VNManager + 更新按钮状态）
+    /// 用于互斥切换：开启 Skip 时先调用此方法关闭 AutoPlay
+    /// </summary>
+    private void StopAutoPlay()
+    {
+        if (!isAutoPlaying && !VNManager.GetInstance().IsAutoPlaying()) return;
+        if (VNManager.GetInstance().IsAutoPlaying())
+        {
+            VNManager.GetInstance().ToggleAutoPlay();
+        }
+        isAutoPlaying = false;
+        UpdateAutoButtonState();
+    }
+
     // 切换UI显示
     private void ToggleUI()
     {
@@ -1313,13 +1385,13 @@ public class VNGameplayPanel : BasePanel
         // 使用 PrimeTween 创建循环动画
         // cycles: -1 (无限循环)
         // cycleMode: Yoyo (像悠悠球一样往复运动)
-        _iconSequence = Sequence.Create(cycles: -1, cycleMode: Sequence.SequenceCycleMode.Yoyo)
+        _iconSequence = AnimationCompat.CreateSequence(cycles: -1, cycleMode: SequenceCycleMode.Yoyo)
             // 1. 上下浮动 (修改 AnchoredPosition Y)
             // endValue: -10 (向下移动10像素), duration: 0.8秒
-            .Group(Tween.UIAnchoredPositionY(continueIcon.rectTransform, endValue: -10f, duration: 0.8f, ease: Ease.InOutSine))
+            .Group(AnimationCompat.AnchoredPositionY(continueIcon.rectTransform, endValue: -10f, duration: 0.8f, ease: Ease.InOutSine))
             // 2. 透明度闪烁
             // endValue: 0.2 (变淡), duration: 0.8秒
-            .Group(Tween.Alpha(continueIcon, endValue: 0.2f, duration: 0.8f, ease: Ease.InOutSine));
+            .Group(AnimationCompat.Alpha(continueIcon, endValue: 0.2f, duration: 0.8f, ease: Ease.InOutSine));
     }
 
     private void HideContinueIcon()
@@ -1360,12 +1432,12 @@ public class VNGameplayPanel : BasePanel
         rect.anchoredPosition = new Vector2(-width, rect.anchoredPosition.y);
 
         // 3. 进场动画 (移入 + 淡入)
-        Sequence.Create()
-            .Group(Tween.Alpha(cg, 1, 0.5f, Ease.OutQuad))
-            .Group(Tween.UIAnchoredPositionX(rect, 0, 0.5f, Ease.OutBack)) // 带点回弹
+        AnimationCompat.CreateSequence()
+            .Group(AnimationCompat.Alpha(cg, 1, 0.5f, Ease.OutQuad))
+            .Group(AnimationCompat.AnchoredPositionX(rect, 0, 0.5f, Ease.OutBack)) // 带点回弹
             .ChainDelay(duration) // 停留时间
-            .Chain(Tween.Alpha(cg, 0, 0.5f, Ease.InQuad)) // 淡出
-            .Group(Tween.UIAnchoredPositionX(rect, -width, 0.5f, Ease.InQuad)) // 移出
+            .Chain(AnimationCompat.Alpha(cg, 0, 0.5f, Ease.InQuad)) // 淡出
+            .Group(AnimationCompat.AnchoredPositionX(rect, -width, 0.5f, Ease.InQuad)) // 移出
             .OnComplete(() => Destroy(go)); // 销毁
     }
     #endregion

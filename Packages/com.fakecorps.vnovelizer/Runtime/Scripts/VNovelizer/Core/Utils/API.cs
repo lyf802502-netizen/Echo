@@ -26,7 +26,6 @@ namespace VNovelizer.Core.API
         }
 
         /// <summary>尝试获取当前游戏主界面面板（无则返回 false）。</summary>
-        /// 为什么需要 out？（突破单一返回值的限制）
         public static bool TryGetGameplayPanel(out VNGameplayPanel panel)
         {
             panel = GetPanel();
@@ -203,7 +202,7 @@ namespace VNovelizer.Core.API
         public static float GetAutoSpeed()
         {
             var data = GlobalDataManager.GetInstance().GetGlobalData();
-            return data != null ? data.AutoSpeed : 2.0f;
+            return data != null ? data.AutoSpeed : 1.0f;
         }
 
         /// <summary>
@@ -348,7 +347,6 @@ namespace VNovelizer.Core.API
             var panel = GetPanel();
             if (panel != null) panel.ShowPrompt(text, duration);
         }
-
         #region Game Flow Control
 
         /// <summary>当前加载的剧本文件名（无则为空字符串）。</summary>
@@ -434,7 +432,6 @@ namespace VNovelizer.Core.API
             VNLocalizationService.TryGetByFullKey(GetCurrentScriptName(), fullKey, out localized);
 
         #endregion
-
         #region Coroutine Control (协程控制)
 
         /// <summary>

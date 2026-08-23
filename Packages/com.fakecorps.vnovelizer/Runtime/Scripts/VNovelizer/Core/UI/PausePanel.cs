@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-using PrimeTween;
+using VNovelizer.Core.Commands;
 using VNovelizer.Core.API;
+using VNovelizer.Core.Compat;
 
 /// <summary>
 /// 暂停面板
@@ -13,6 +14,7 @@ public class PausePanel : BasePanel
 {
     #region UI控件引用
 
+    [SerializeField] private Button backBtn;
     [SerializeField] private Button saveBtn;
     [SerializeField] private Button loadBtn;
     [SerializeField] private Button settingsBtn;
@@ -38,12 +40,15 @@ public class PausePanel : BasePanel
     /// </summary>
     private void InitializeControls()
     {
+        backBtn = GetControl<Button>("BackBtn");
         saveBtn = GetControl<Button>("SaveBtn");
         loadBtn = GetControl<Button>("LoadBtn");
         settingsBtn = GetControl<Button>("SettingsBtn");
         exitBtn = GetControl<Button>("ExitBtn");
         
         // 检查关键控件是否存在
+        if (backBtn == null)
+            Debug.LogError("[PausePanel] 找不到 BackBtn 按钮！");
         if (saveBtn == null)
             Debug.LogError("[PausePanel] 找不到 SaveBtn 按钮！");
         if (loadBtn == null)
@@ -59,6 +64,8 @@ public class PausePanel : BasePanel
     /// </summary>
     private void BindEvents()
     {
+        if (backBtn != null)
+            backBtn.onClick.AddListener(OnBackBtnClick);
         if (saveBtn != null)
             saveBtn.onClick.AddListener(OnSaveBtnClick);
         if (loadBtn != null)
@@ -74,6 +81,8 @@ public class PausePanel : BasePanel
     /// </summary>
     private void UnbindEvents()
     {
+        if (backBtn != null)
+            backBtn.onClick.RemoveListener(OnBackBtnClick);
         if (saveBtn != null)
             saveBtn.onClick.RemoveListener(OnSaveBtnClick);
         if (loadBtn != null)
@@ -147,6 +156,23 @@ public class PausePanel : BasePanel
     #region 按钮事件处理
     
     /// <summary>
+    /// 返回游戏按钮点击 - 关闭暂停面板并恢复游戏状态
+    /// </summary>
+    private void OnBackBtnClick()
+    {
+        // 恢复游戏状态
+        if (GameStateManager.GetInstance() != null && 
+            GameStateManager.GetInstance().CurrentState == GameState.Pause)
+        {
+            GameStateManager.GetInstance().RestoreState();
+            Debug.Log("[PausePanel] 返回游戏，已恢复游戏状态");
+        }
+
+        // 关闭暂停面板
+        UIManager.GetInstance().HidePanel("PausePanel");
+    }
+    
+    /// <summary>
     /// 保存按钮点击
     /// </summary>
     private void OnSaveBtnClick()
@@ -217,6 +243,13 @@ public class PausePanel : BasePanel
     /// </summary>
     private void OnExitBtnClick()
     {
+        // [2026-08-22] 玩家主动返回标题画面时，先保存当前剧情位置，避免继续游戏回到上一次剧情 autosave 节点。
+        if (VNManager.GetInstance() != null && SaveManager.GetInstance() != null)
+        {
+            VNManager.GetInstance().SaveGame(VNSaveSlots.ContinueSaveSlotIndex);
+            Debug.Log("[PausePanel] 已在返回标题画面前保存继续游戏存档");
+        }
+
         // 关闭暂停面板
         UIManager.GetInstance().HidePanel("PausePanel");
         
@@ -225,12 +258,11 @@ public class PausePanel : BasePanel
             GameStateManager.GetInstance().CurrentState == GameState.Pause)
         {
             GameStateManager.GetInstance().RestoreState();
-            PrimeTween.Tween.StopAll();
+            AnimationCompat.StopAll();
             VNAPI.ClearAllEffects();
             PoolManager.GetInstance().Clear();
         }
-
-        MusicManager.GetInstance().StopBGM();
+        
 
         // 加载主菜单场景
         SceneManager.LoadScene("VNMainMenu");
@@ -240,4 +272,3 @@ public class PausePanel : BasePanel
     
     #endregion
 }
-

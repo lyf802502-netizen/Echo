@@ -12,8 +12,7 @@ using Unity.VisualScripting;
 /// /// </summary>
 public class BasePanel : MonoBehaviour
 {
-    private Dictionary<string, List<UIBehaviour>> controlDic = new Dictionary<string, List<UIBehaviour>>();
-
+    private Dictionary<string,List<UIBehaviour>> controlDic = new Dictionary<string, List<UIBehaviour>>();
     protected virtual void Awake()
     {
         FindChildrenControl<Button>();

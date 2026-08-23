@@ -177,21 +177,6 @@ public class ScriptManagerWindow : EditorWindow
         RefreshList();
     }
 
-    private void RefreshList()
-    {
-        if (!Directory.Exists(excelFolderPath)) return;
-
-        var dir = new DirectoryInfo(excelFolderPath);
-        excelFiles = dir.GetFiles("*.*")
-            .Where(f => (f.Extension == ".xlsx" || f.Extension == ".xls") && !f.Name.StartsWith("~$"))
-            .OrderByDescending(f => f.LastWriteTime)
-            .ToList();
-
-        scriptList.itemsSource = excelFiles;
-        scriptList.Rebuild();
-        statusLabel.text = $"刷新完成，共 {excelFiles.Count} 个剧本";
-    }
-
     private void ClampSplitPosition()
     {
         if (isClampingSplit || splitView == null || leftPane == null)
@@ -221,6 +206,21 @@ public class ScriptManagerWindow : EditorWindow
         isClampingSplit = true;
         splitView.fixedPaneInitialDimension = clampedLeftWidth;
         isClampingSplit = false;
+    }
+
+    private void RefreshList()
+    {
+        if (!Directory.Exists(excelFolderPath)) return;
+
+        var dir = new DirectoryInfo(excelFolderPath);
+        excelFiles = dir.GetFiles("*.*")
+            .Where(f => (f.Extension == ".xlsx" || f.Extension == ".xls") && !f.Name.StartsWith("~$"))
+            .OrderByDescending(f => f.LastWriteTime)
+            .ToList();
+
+        scriptList.itemsSource = excelFiles;
+        scriptList.Rebuild();
+        statusLabel.text = $"刷新完成，共 {excelFiles.Count} 个剧本";
     }
 
     private void OnSelectionChanged(IEnumerable<object> selection)
@@ -292,7 +292,7 @@ public class ScriptManagerWindow : EditorWindow
                     previewTable.itemsSource = tableData;
                     previewTable.Rebuild();
                     statusLabel.text = $"已加载预览：{file.Name}";
-                } //离开时，reader自动销毁
+                }
             }
         }
         catch (System.Exception e)
@@ -445,6 +445,8 @@ public class ScriptManagerWindow : EditorWindow
     {
         statusLabel.text = "正在转换...";
         ExcelToCsvConverter.ConvertAllExcelFiles();
+        // 同步时间戳，避免切回 Unity 时重复触发自动转换
+        //AutoExcelConverter.RefreshAllFileTimestamps();
         statusLabel.text = "转换完成！";
         RefreshList();
     }
@@ -453,8 +455,8 @@ public class ScriptManagerWindow : EditorWindow
     {
         string scriptName = Path.GetFileNameWithoutExtension(file.Name);
 
-        PlayerPrefs.SetString("Debug_ScriptName", scriptName);
-        PlayerPrefs.SetString("Debug_LineID", "");
+        PlayerPrefs.SetString("Debug_LastScriptName", scriptName);
+        PlayerPrefs.SetString("Debug_LastLineID", "");
         PlayerPrefs.SetInt("Debug_Mode", 1);
         PlayerPrefs.Save();
 

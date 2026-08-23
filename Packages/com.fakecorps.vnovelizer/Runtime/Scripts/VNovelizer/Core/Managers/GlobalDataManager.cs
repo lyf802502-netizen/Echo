@@ -22,7 +22,33 @@ public class GlobalDataManager : BaseManager<GlobalDataManager>
         
         LoadGlobalData();
         ApplyDisplaySettings();
+        ApplyAudioSettings();
+        ApplyTextSettings();
         isInitialized = true;
+    }
+
+    /// <summary>
+    /// 重新加载并应用所有设置（用于跨 Play Mode 或外部修改后强制刷新）
+    /// </summary>
+    public void ReloadAndApplySettings()
+    {
+        LoadGlobalData();
+        ApplyDisplaySettings();
+        ApplyAudioSettings();
+        ApplyTextSettings();
+        isInitialized = true;
+    }
+
+    /// <summary>
+    /// 应用所有设置到各 Manager（音量 + 文本 + 显示）
+    /// 可在外部调用以强制刷新设置
+    /// </summary>
+    public void ApplyAllSettings()
+    {
+        EnsureInitialized();
+        ApplyDisplaySettings();
+        ApplyAudioSettings();
+        ApplyTextSettings();
     }
     
     /// <summary>
@@ -45,6 +71,40 @@ public class GlobalDataManager : BaseManager<GlobalDataManager>
         {
             Screen.SetResolution(globalData.ScreenWidth, globalData.ScreenHeight, globalData.IsFullScreen);
         }
+    }
+    
+    /// <summary>
+    /// 应用音频设置到各 Manager（Master/BGM/Voice/SFX）
+    /// 在 Init 时调用，确保磁盘保存的音量设置被正确同步到运行时
+    /// </summary>
+    private void ApplyAudioSettings()
+    {
+        if (globalData == null) return;
+        
+        // Master Volume → AudioListener
+        AudioListener.volume = globalData.MasterVolume;
+        
+        // BGM Volume → MusicManager
+        MusicManager.GetInstance().ChangeBGMVolume(globalData.BGMVolume);
+        
+        // Voice Volume → VoiceManager
+        VoiceManager.GetInstance().ChangeVoiceVolume(globalData.VoiceVolume);
+        
+        // SFX Volume → MusicManager
+        MusicManager.GetInstance().ChangeSFXVolume(globalData.SFXVolume);
+    }
+    
+    /// <summary>
+    /// 应用文本设置（触发事件通知 VNGameplayPanel 等）
+    /// 在 Init 时调用，确保文本速度和自动播放速度被正确同步
+    /// </summary>
+    private void ApplyTextSettings()
+    {
+        if (globalData == null) return;
+        
+        // 触发无参事件，通知 VNGameplayPanel 读取最新的 TextSpeed / AutoSpeed
+        EventCenter.GetInstance().EventTrigger("TextSpeedChanged");
+        EventCenter.GetInstance().EventTrigger("AutoSpeedChanged");
     }
     
     /// <summary>
@@ -108,6 +168,12 @@ public class GlobalDataManager : BaseManager<GlobalDataManager>
         if (globalData.UnlockedEndings == null)
         {
             globalData.UnlockedEndings = new List<string>();
+        }
+
+        if (globalData.UnlockedChapters.Count == 0)
+        {
+            globalData.UnlockedChapters.Add("CH01"); // 默认解锁第一个章节
+            SaveGlobalData();
         }
     }
     
@@ -332,7 +398,8 @@ public class GlobalDataManager : BaseManager<GlobalDataManager>
         EnsureInitialized();
         globalData.TextSpeed = textSpeed;
         SaveGlobalData();
-        EventCenter.GetInstance().EventTrigger("TextSpeedChanged", textSpeed);
+        // 触发无参事件（VNGameplayPanel 注册的是无参回调，带参版会因 EventInfo 类型不匹配而失效）
+        EventCenter.GetInstance().EventTrigger("TextSpeedChanged");
     }
     
     /// <summary>
@@ -344,7 +411,8 @@ public class GlobalDataManager : BaseManager<GlobalDataManager>
         EnsureInitialized();
         globalData.AutoSpeed = autoSpeed;
         SaveGlobalData();
-        EventCenter.GetInstance().EventTrigger("AutoSpeedChanged", autoSpeed);
+        // 触发无参事件，通知 VNGameplayPanel 读取最新的 AutoSpeed
+        EventCenter.GetInstance().EventTrigger("AutoSpeedChanged");
     }
     
     /// <summary>

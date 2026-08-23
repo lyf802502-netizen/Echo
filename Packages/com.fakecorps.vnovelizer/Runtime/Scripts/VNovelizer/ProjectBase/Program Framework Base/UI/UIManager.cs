@@ -17,7 +17,6 @@ public enum E_UI_Layer
     Top,
     System
 }
-
 public class UIManager : BaseManager<UIManager>
 {
     public Dictionary<string, BasePanel> panelDic = new Dictionary<string, BasePanel>();
@@ -806,6 +805,37 @@ public class UIManager : BaseManager<UIManager>
                         return;
                     }
                 }
+
+                // Transform father = null;
+                // switch (layer)
+                // {
+                //     case E_UI_Layer.Bottom:
+                //         father = Bottom;
+                //         break;
+                //     case E_UI_Layer.Middle:
+                //         father = Middle;
+                //         break;
+                //     case E_UI_Layer.Right:
+                //         father = Right;
+                //         break;
+                //     case E_UI_Layer.Left:
+                //         father = Left;
+                //         break;
+                //     case E_UI_Layer.Top:
+                //         father = Top;
+                //         break;
+                //     case E_UI_Layer.System:
+                //         father = System;
+                //         break;
+                // }
+                //
+                // // 检查UI层级是否存在
+                // if (father == null)
+                // {
+                //     Debug.LogError($"[UIManager] UI层级 {layer} 未找到，请检查Canvas预制体结构");
+                //     GameObject.Destroy(obj);
+                //     return;
+                // }
                 
                 Transform father = GetLayerFather(layer);
                 

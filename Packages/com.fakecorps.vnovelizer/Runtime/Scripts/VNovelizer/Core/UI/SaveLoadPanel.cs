@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using VNovelizer.Core.Commands;
 
 public class SaveLoadPanel : BasePanel
 {
@@ -22,8 +23,9 @@ public class SaveLoadPanel : BasePanel
     private int currentPage = 0;
     private const int SLOTS_PER_PAGE = 12; // 确保这里是你想要的每页数量
     // 【修改】从SaveManager获取最大存档槽位数，确保一致性
-    private int MAX_SAVE_SLOTS => SaveManager.GetInstance().GetMaxSaveSlots();
-
+    // private int MAX_SAVE_SLOTS => SaveManager.GetInstance().GetMaxSaveSlots();
+    // [2026-8-21]【修改】第 59 号槽位已经被设置为系统内部的自动存档槽位，玩家无法直接访问它，因此我们在UI中只显示前 59 个槽位（0-58）
+    private int MAX_SAVE_SLOTS => VNSaveSlots.ManualSaveSlotCount;
     // 存档槽位预制体
     private GameObject saveSlotPrefab;
 

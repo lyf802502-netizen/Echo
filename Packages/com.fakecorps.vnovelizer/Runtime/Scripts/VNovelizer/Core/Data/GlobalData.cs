@@ -17,7 +17,7 @@ public class GlobalData
     
     // 文本设置
     public float TextSpeed = 0.05f;
-    public float AutoSpeed = 2.0f;
+    public float AutoSpeed = 1.0f;
     
     // 显示设置
     public bool IsFullScreen = true;
@@ -29,17 +29,17 @@ public class GlobalData
     public List<string> UnlockedScenes = new List<string>();
     public List<string> UnlockedMusic = new List<string>();
     public List<string> ReadLineIDs = new List<string>();
+    
+    // 游戏标志（用于剧情分支等）
+    public Dictionary<string, bool> Flags = new Dictionary<string, bool>();
+    public Dictionary<string, int> IntFlags = new Dictionary<string, int>();
+    public Dictionary<string, string> StringFlags = new Dictionary<string, string>();
 
     // 章节与结局收集进度
     public List<string> UnlockedChapters = new List<string>(); // 玩家已经可以进入的章节
     public List<string> CompletedChapters = new List<string>(); // 玩家已经通关的章节
     public List<string> UnlockedEndings = new List<string>(); // 玩家解锁的结局
 
-    // 游戏标志（用于剧情分支等）
-    public Dictionary<string, bool> Flags = new Dictionary<string, bool>();
-    public Dictionary<string, int> IntFlags = new Dictionary<string, int>();
-    public Dictionary<string, string> StringFlags = new Dictionary<string, string>();
-    
     /// <summary>
     /// 设置游戏标志（bool类型）
     /// </summary>

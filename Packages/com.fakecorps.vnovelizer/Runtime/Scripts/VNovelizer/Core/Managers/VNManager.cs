@@ -9,6 +9,7 @@ using VNovelizer.Core.API; // 引用 API 以便调用 ClearAllEffects
 using VNovelizer.Core.Localization;
 using VNovelizer.Core;
 using VNovelizer.Core.Diagnostics;
+using VNovelizer.Core.Compat;
 
 /// <summary>
 /// 视觉小说核心管理器 (终极预演版)
@@ -47,6 +48,8 @@ public class VNManager : BaseManager<VNManager>
     private bool isTextDisplaying = false;
     private bool _currentLineHasDialogueText = false;
     private bool _currentLineTypingFinished = true;
+    // [2026-08-22] 恢复存档时，当前对白已经存在于存档历史中，首次重绘时不要重复记录。
+    private string _skipHistoryLineId = null;
     
     // 【新增】回放模式相关变量
     private bool isReplayMode = false;
@@ -72,10 +75,11 @@ public class VNManager : BaseManager<VNManager>
 
     //(3-29)文本行间转场
     private bool _advanceAfterCommandsRequested = false;
+
     // 标记：某个命令已经自己完成了“恢复剧情/播放目标行”的工作，
     // ExecuteActionsAndContinue 在命令返回后就不应该再重复推进或重播当前行。
     private bool _externalFlowHandledRequested = false;
-    
+
     public VNManager()
     {
         if (!isListeningSceneLoad)
@@ -93,6 +97,9 @@ public class VNManager : BaseManager<VNManager>
     /// <param name="onGameStarted">游戏启动完成后的回调函数（可选）</param>
     public void StartGame(string scriptFileName, string startLineID = "", UnityAction onGameStarted = null)
     {
+        // [2026-08-22] 开始新游戏时清除上一次读档恢复留下的标记，并从新的游玩记录开始。
+        _skipHistoryLineId = null;
+        GlobalDataManager.GetInstance().ClearHistoryLog();
         this.pendingScriptName = scriptFileName;
         this.pendingLineID = startLineID;
         this.onGameStartedCallback = onGameStarted;
@@ -420,6 +427,9 @@ public class VNManager : BaseManager<VNManager>
     {
         currentBG = "";
         currentBGM = "";
+        // 【修复】同步通知 MusicManager 停止播放并清除 currentPlayingBGM，
+        // 避免 VNManager 状态与 MusicManager 状态不一致导致后续 PlayBGM 被重复检查挡住
+        MusicManager.GetInstance().StopBGM();
         currentCharacters.Clear();
         activeEffects.Clear();
         VNAPI.ClearAllEffects(); // 物理清空特效
@@ -574,7 +584,7 @@ public class VNManager : BaseManager<VNManager>
         
         // 分割命令（使用 & 分隔符）
         string[] commands = commandString.Split('&');
-        List<string> nonChoiceCommands = new List<string>();
+        System.Collections.Generic.List<string> nonChoiceCommands = new System.Collections.Generic.List<string>();
         
         foreach (string cmd in commands)
         {
@@ -876,6 +886,15 @@ public class VNManager : BaseManager<VNManager>
 
         GlobalDataManager.GetInstance().AddReadLineID(currentLine.ID);
 
+        // if (!string.IsNullOrEmpty(currentLine.Command))
+        // {
+        //     _flowCoroutine = MonoManager.GetInstance().StartCoroutine(ExecuteActionsAndContinue(currentLine.Command));
+        // }
+        // else
+        // {
+        //     CheckAndTriggerAutoPlay();
+        // }
+
         if (!string.IsNullOrEmpty(currentLine.Command))
         {
             // [2026-08-12] 当前剧情行包含命令时，先等待命令协程完成，再显示对白。
@@ -888,7 +907,8 @@ public class VNManager : BaseManager<VNManager>
         }
         else
         {
-            // [2026-08-12] 普通剧情行没有异步命令，保持立即显示对白的原有逻辑。
+            // [2026-08-21] 普通剧情行只在这里更新一次对白；UpdateDialogue 会同时写入一条历史记录。
+            // 带命令的剧情行由 ExecuteActionsAndContinue 完成后统一更新，避免历史记录重复写入。
             UpdateDialogue(currentLine);
             CheckAndTriggerAutoPlay();
         }
@@ -921,7 +941,7 @@ public class VNManager : BaseManager<VNManager>
             // 在 Choice 状态下，等待玩家选择，不触发自动播放
             return;
         }
-
+        
         if (_currentLineHasDialogueText && !_currentLineTypingFinished)
         {
             return;
@@ -946,7 +966,7 @@ public class VNManager : BaseManager<VNManager>
         bool isBusy = isTextDisplaying || isTextTyping || isVoicePlaying || 
                       CommandManager.GetInstance().IsRunning || _flowCoroutine != null;
 
-        if (!isBusy)
+        if (isAutoPlaying && !isBusy)
         {
             float delay = GlobalDataManager.GetInstance().GetGlobalData().AutoSpeed;
             VNDebug.LogVerbose($"[VNManager] 自动播放触发 - 延迟时间: {delay}秒");
@@ -959,7 +979,7 @@ public class VNManager : BaseManager<VNManager>
         CheckAndTriggerAutoPlay();
     }
     
-    //玩家点击、自动播放与跳过
+
     public void NextLine()
     {
         AdvanceToNextLine(false);
@@ -989,7 +1009,7 @@ public class VNManager : BaseManager<VNManager>
             VNDebug.LogVerbose("[VNManager] 有命令阻止点击，暂停前进");
             return;
         }
-        
+
         bool isCmdRunning = CommandManager.GetInstance().IsRunning;
         bool isFlowRunning = _flowCoroutine != null;
 
@@ -1301,9 +1321,16 @@ public class VNManager : BaseManager<VNManager>
         _headProfileEventScratch[VNGameEvents.KeySpeaker] = finalSpeaker;
         EventCenter.GetInstance().EventTrigger(VNGameEvents.UpdateHeadProfile, _headProfileEventScratch);
 
-        _currentLineHasDialogueText = !string.IsNullOrWhiteSpace(finalText);
-        _currentLineTypingFinished = !_currentLineHasDialogueText;
-        isTextDisplaying = _currentLineHasDialogueText;
+        isTextDisplaying = true;
+
+        // [2026-08-22] ContinueGame 会重新播放一次存档所在行，仅用于恢复画面，不应再次写入历史记录。
+        if (!string.IsNullOrEmpty(_skipHistoryLineId) &&
+            string.Equals(_skipHistoryLineId, currentLine.ID, System.StringComparison.Ordinal))
+        {
+            _skipHistoryLineId = null;
+            return;
+        }
+
         AddHistoryEntry(finalSpeaker, finalText, currentLine.Voice);
     }
 
@@ -1329,6 +1356,7 @@ public class VNManager : BaseManager<VNManager>
                 _autoPlayCoroutine = null;
             }
         }
+
         EventCenter.GetInstance().EventTrigger(VNGameEvents.ToggleAutoPlay, isAutoPlaying);
         CheckAndTriggerAutoPlay();
     }
@@ -1381,6 +1409,20 @@ public class VNManager : BaseManager<VNManager>
 
     private void AddHistoryEntry(string speaker, string text, string voiceID)
     {
+        // [2026-08-22] 防止同一对白在恢复、重绘或重复触发时连续写入历史记录。
+        List<HistoryEntry> history = GlobalDataManager.GetInstance().GetHistoryLog();
+        if (history != null && history.Count > 0)
+        {
+            HistoryEntry last = history[history.Count - 1];
+            if (last != null &&
+                string.Equals(last.Speaker, speaker, System.StringComparison.Ordinal) &&
+                string.Equals(last.Text, text, System.StringComparison.Ordinal) &&
+                string.Equals(last.VoiceID, voiceID, System.StringComparison.Ordinal))
+            {
+                return;
+            }
+        }
+
         GlobalDataManager.GetInstance().AddHistoryLog(speaker, text, voiceID);
         HistoryEntry entry = new HistoryEntry(speaker, text, voiceID);
         EventCenter.GetInstance().EventTrigger(VNGameEvents.AddHistoryEntry, entry);
@@ -1615,6 +1657,7 @@ public class VNManager : BaseManager<VNManager>
             yield break;
         }
     
+    
         // 计算目标行索引
         int targetIndex = 0;
         if (!string.IsNullOrEmpty(pendingLineID))
@@ -1713,7 +1756,7 @@ public class VNManager : BaseManager<VNManager>
             onGameStartedCallback.Invoke();
             onGameStartedCallback = null;
         }
-    }
+}
     
     /// <summary>
     /// 带进度更新的继续游戏剧本加载协程
@@ -1775,8 +1818,29 @@ public class VNManager : BaseManager<VNManager>
         // 恢复历史记录（在恢复特效前）
         if (saveData.HistoryLog != null && saveData.HistoryLog.Count > 0)
         {
-            GlobalDataManager.GetInstance().RestoreHistoryLog(saveData.HistoryLog);
-            VNDebug.LogVerbose($"[VNManager] 已恢复 {saveData.HistoryLog.Count} 条历史记录");
+            // [2026-08-22] 兼容旧存档：恢复历史时移除相邻的完全重复对白。
+            List<HistoryEntry> normalizedHistory = new List<HistoryEntry>();
+            foreach (HistoryEntry entry in saveData.HistoryLog)
+            {
+                if (entry == null)
+                    continue;
+
+                if (normalizedHistory.Count > 0)
+                {
+                    HistoryEntry previous = normalizedHistory[normalizedHistory.Count - 1];
+                    if (string.Equals(previous.Speaker, entry.Speaker, System.StringComparison.Ordinal) &&
+                        string.Equals(previous.Text, entry.Text, System.StringComparison.Ordinal) &&
+                        string.Equals(previous.VoiceID, entry.VoiceID, System.StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                }
+
+                normalizedHistory.Add(entry);
+            }
+
+            GlobalDataManager.GetInstance().RestoreHistoryLog(normalizedHistory);
+            VNDebug.LogVerbose($"[VNManager] 已恢复 {normalizedHistory.Count} 条历史记录");
         }
         else
         {
@@ -1813,6 +1877,9 @@ public class VNManager : BaseManager<VNManager>
         {
             targetIndex = LineIDIndexMap[saveData.LineID];
         }
+
+        // [2026-08-22] 存档历史已经恢复，当前行接下来只用于重建画面，不应再次写入历史。
+        _skipHistoryLineId = (targetIndex >= 0 && targetIndex < StoryLines.Count) ? StoryLines[targetIndex].ID : null;
         
         // 保存到成员变量，供DelayedContinueGameplay使用
         currentLoadingSaveData = saveData;
@@ -1842,14 +1909,14 @@ public class VNManager : BaseManager<VNManager>
             currentLoadingSaveData = null;
         }
     }
-
+    
     /// <summary>
     /// 延迟继续游戏逻辑（确保UI完全初始化）
     /// </summary>
     private System.Collections.IEnumerator DelayedContinueGameplay()
     {
         // yield return null; // 等待一帧
-
+        
         // 获取游戏面板
         VNGameplayPanel gameplayPanel = UIManager.GetInstance().GetPanel<VNGameplayPanel>("VNGameplayPanel");
         if (gameplayPanel == null)
@@ -1858,24 +1925,44 @@ public class VNManager : BaseManager<VNManager>
             // currentLoadingSaveData = null;
             yield break;
         }
-
+        
         // 检查是否有保存的存档数据
         if (currentLoadingSaveData == null)
         {
             Debug.LogError("[VNManager] 存档数据丢失，继续游戏失败");
             yield break;
         }
-
+        
         // 【修复】确保游戏状态设置为 Gameplay（加载存档时需要）
         GameStateManager.GetInstance().SetState(GameState.Gameplay);
-
+        
         // 恢复游戏状态
         RestoreGameStateFromSave(currentLoadingSaveData, currentLoadingTargetIndex);
-
+        
         // 清理临时数据
         currentLoadingSaveData = null;
     }
     
+    
+    
+    // private IEnumerator ExecuteActionsAndContinue(string actionString)
+    // {
+    //     int preIndex = CurrentLineIndex;
+    //     yield return CommandManager.GetInstance().ExecuteCommandsAsync(actionString);
+    //     _flowCoroutine = null;
+    //
+    //     // 【修复】检查游戏状态，如果是 Choice 状态，不应该继续前进或触发自动播放
+    //     GameStateManager stateManager = GameStateManager.GetInstance();
+    //     if (stateManager != null && stateManager.CurrentState == GameState.Choice)
+    //     {
+    //         // 在 Choice 状态下，等待玩家选择，不继续前进
+    //         VNDebug.LogVerbose("[VNManager] 命令执行完成，当前处于 Choice 状态，停止继续前进");
+    //         yield return null;
+    //     }
+    //
+    //     if (CurrentLineIndex != preIndex) PlayCurrentLine();
+    //     else CheckAndTriggerAutoPlay();
+    // }
     private IEnumerator ExecuteActionsAndContinue(string actionString)
     {
         int preIndex = CurrentLineIndex;
@@ -1885,6 +1972,7 @@ public class VNManager : BaseManager<VNManager>
         _flowCoroutine = null;
 
         bool shouldAdvanceAfterCommands = ConsumeAdvanceAfterCommandsRequest();
+
         bool externalFlowHandled = ConsumeExternalFlowHandledRequest();
 
         // 某些跨场景命令（例如音游）会自己恢复到目标剧情行。
@@ -1899,6 +1987,7 @@ public class VNManager : BaseManager<VNManager>
         // [2026-08-12] 命令执行完成后才触发对白打字。
         if (CurrentLineIndex == preIndex && preIndex >= 0 && preIndex < StoryLines.Count)
         {
+            // [2026-08-21] 命令执行完成后才显示对白，并在此处仅写入一次历史记录。
             UpdateDialogue(StoryLines[preIndex]);
         }
 
@@ -1963,7 +2052,7 @@ public class VNManager : BaseManager<VNManager>
         
         // 第二步：等待AutoSpeed时间后进入下一行
         yield return new WaitForSeconds(delay);
-
+        
         if (!isAutoPlaying)
         {
             _autoPlayCoroutine = null;
@@ -2040,11 +2129,11 @@ public class VNManager : BaseManager<VNManager>
         yield return DelayedStartGameplay();
     }
 
-    
+
     #endregion
-    
-    
-    
+
+
+
     #region API供外部调用
     public void RequestAdvanceAfterCommands()
     {
@@ -2088,6 +2177,7 @@ public class VNManager : BaseManager<VNManager>
         _externalFlowHandledRequested = false;
         return result;
     }
+
     public float GetCharacterScaleX(string posCode)
     {
         string normalized = NormalizePositionCode(posCode);
@@ -2156,7 +2246,7 @@ public class VNManager : BaseManager<VNManager>
         isReplayMode = false;
         replayEndLineID = "";
 
-        PrimeTween.Tween.StopAll();
+        AnimationCompat.StopAll();
         VNAPI.ClearAllEffects();
         PoolManager.GetInstance().Clear();
 

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using PrimeTween;
+using VNovelizer.Core.Commands;
 
 /// <summary>
 /// 主界面面板
@@ -20,9 +21,13 @@ public class MainMenuPanel : BasePanel
     private const float ButtonEnterDuration = 0.45f;
     private const float ButtonEnterInterval = 0.12f;
     #endregion
-    
+
     #region UI控件引用
+    // [2026-8-21] 目前主菜单场景中新增按钮：
+    // 继续游戏（continueGameBtn）、章节选择（chapterSelectBtn）、返回上一级（backToPreviousBtn）、返回主界面（returnToStartBtn）
     [SerializeField] private Button newGameBtn;
+    [SerializeField] private Button continueGameBtn;
+    [SerializeField] private Button chapterSelectBtn;
     [SerializeField] private Button loadGameBtn;
     [SerializeField] private Button galleryBtn;
     [SerializeField] private Button settingsBtn;
@@ -50,6 +55,8 @@ public class MainMenuPanel : BasePanel
     private void InitializeControls()
     {
         newGameBtn = GetControl<Button>("NewGameBtn");
+        continueGameBtn = GetControl<Button>("ContinueGameBtn");
+        chapterSelectBtn = GetControl<Button>("ChapterSelectBtn");
         loadGameBtn = GetControl<Button>("LoadGameBtn");
         galleryBtn = GetControl<Button>("GalleryBtn");
         settingsBtn = GetControl<Button>("SettingsBtn");
@@ -59,6 +66,10 @@ public class MainMenuPanel : BasePanel
         // 检查关键控件是否存在
         if (newGameBtn == null)
             Debug.LogError("[MainMenuPanel] 找不到 NewGameBtn 按钮！");
+        if (continueGameBtn == null)
+            Debug.LogError("[MainMenuPanel] 找不到 ContinueGameBtn 按钮！");
+        if (chapterSelectBtn == null)
+            Debug.LogError("[MainMenuPanel] 找不到 ChapterSelectBtn 按钮！");
         if (loadGameBtn == null)
             Debug.LogError("[MainMenuPanel] 找不到 LoadGameBtn 按钮！");
         if (galleryBtn == null)
@@ -78,12 +89,15 @@ public class MainMenuPanel : BasePanel
     /// </summary>
     private void CacheButtonOriginalPositions()
     {
-        CacheButtonOriginalPosition(newGameBtn);
-        CacheButtonOriginalPosition(loadGameBtn);
-        CacheButtonOriginalPosition(galleryBtn);
-        CacheButtonOriginalPosition(settingsBtn);
-        CacheButtonOriginalPosition(backToPreviousBtn);
-        CacheButtonOriginalPosition(returnToStartBtn);
+        List<Button> menuButtons = new List<Button>();
+
+        AddButtonsInHierarchyOrder(transform.Find("ButtonContainer_1"), menuButtons);
+        AddButtonsInHierarchyOrder(transform.Find("ButtonContainer_2"), menuButtons);
+
+        foreach (Button button in menuButtons)
+        {
+            CacheButtonOriginalPosition(button);
+        }
     }
 
     private void CacheButtonOriginalPosition(Button button)
@@ -95,6 +109,22 @@ public class MainMenuPanel : BasePanel
         }
     }
 
+    private void AddButtonsInHierarchyOrder(Transform container, List<Button> result)
+    {
+        if (container == null)
+        {
+            return;
+        }
+
+        // 获取每个按钮容器下的所有 Button 组件，按层级顺序添加到结果列表中
+        Button[] buttons = container.GetComponentsInChildren<Button>(true);
+
+        foreach (Button button in buttons)
+        {
+            result.Add(button);
+        }
+    }
+
     /// <summary>
     /// 绑定事件
     /// </summary>
@@ -102,6 +132,10 @@ public class MainMenuPanel : BasePanel
     {
         if (newGameBtn != null)
             newGameBtn.onClick.AddListener(OnNewGameBtnClick);
+        if (continueGameBtn != null)
+            continueGameBtn.onClick.AddListener(OnContinueGameBtnClick);
+        if (chapterSelectBtn != null)
+            chapterSelectBtn.onClick.AddListener(OnChapterSelectBtnClick);
         if (loadGameBtn != null)
             loadGameBtn.onClick.AddListener(OnLoadGameBtnClick);
         if (galleryBtn != null)
@@ -121,6 +155,10 @@ public class MainMenuPanel : BasePanel
     {
         if (newGameBtn != null)
             newGameBtn.onClick.RemoveListener(OnNewGameBtnClick);
+        if (continueGameBtn != null)
+            continueGameBtn.onClick.RemoveListener(OnContinueGameBtnClick);
+        if (chapterSelectBtn != null)
+            chapterSelectBtn.onClick.RemoveListener(OnChapterSelectBtnClick);
         if (loadGameBtn != null)
             loadGameBtn.onClick.RemoveListener(OnLoadGameBtnClick);
         if (galleryBtn != null)
@@ -184,9 +222,14 @@ public class MainMenuPanel : BasePanel
     /// </summary>
     private void PlayButtonEnterAnimation()
     {
-        Button[] menuButtons = { newGameBtn, loadGameBtn, galleryBtn, settingsBtn, backToPreviousBtn, returnToStartBtn };
+        List<Button> menuButtons = new List<Button>();
+        Transform buttonContainer1 = transform.Find("ButtonContainer_1");
+        Transform buttonContainer2 = transform.Find("ButtonContainer_2");
 
-        for (int i = 0; i < menuButtons.Length; i++)
+        AddButtonsInHierarchyOrder(buttonContainer1, menuButtons);
+        AddButtonsInHierarchyOrder(buttonContainer2, menuButtons);
+
+        for (int i = 0; i < menuButtons.Count; i++)
         {
             if (menuButtons[i] == null)
                 continue;
@@ -202,14 +245,8 @@ public class MainMenuPanel : BasePanel
             Vector2 startPosition = targetPosition + Vector2.down * ButtonEnterOffset;
             buttonTransform.anchoredPosition = startPosition;
 
-            Tween.UIAnchoredPosition(
-                buttonTransform,
-                startPosition,
-                targetPosition,
-                ButtonEnterDuration,
-                Ease.OutBack,
-                startDelay: i * ButtonEnterInterval,
-                useUnscaledTime: true);
+            Tween.UIAnchoredPosition(buttonTransform, startPosition, targetPosition, ButtonEnterDuration, Ease.OutBack,
+                                     startDelay: i * ButtonEnterInterval, useUnscaledTime: true);
         }
     }
 
@@ -339,17 +376,60 @@ public class MainMenuPanel : BasePanel
     /// <summary>
     /// 关闭目录的点击功能，私有方法
     /// </summary>
-    /// <param name="interactable"></param>
-    
+    /// <param name="interactable"></param> 
     private void SetMenuInteractable(bool interactable)
     {
         if (newGameBtn != null) newGameBtn.interactable = interactable;
+        if (continueGameBtn != null) continueGameBtn.interactable = interactable;
+        if (chapterSelectBtn != null) chapterSelectBtn.interactable = interactable;
         if (loadGameBtn != null) loadGameBtn.interactable = interactable;
         if (galleryBtn != null) galleryBtn.interactable = interactable;
         if (settingsBtn != null) settingsBtn.interactable = interactable;
         if (backToPreviousBtn != null) backToPreviousBtn.interactable = interactable;
+        if (returnToStartBtn != null) returnToStartBtn.interactable = interactable;
     }
-    
+
+    /// <summary>
+    /// 继续游戏按钮点击
+    /// </summary>
+    private void OnContinueGameBtnClick()
+    {
+        if (SaveManager.GetInstance() == null)
+        {
+            Debug.LogError("[MainMenuPanel] SaveManager 未初始化");
+            return;
+        }
+
+        SaveData saveData = SaveManager.GetInstance().LoadGame(VNSaveSlots.ContinueSaveSlotIndex);
+
+        if (saveData == null)
+        {
+            Debug.LogWarning("[MainMenuPanel] 没有可用的自动存档");
+            RefreshSaveButtonState();
+            return;
+        }
+
+        HideMe();
+
+        VNManager.GetInstance().ContinueGame(saveData);
+
+        Debug.Log("[MainMenuPanel] 正在加载自动存档");
+    }
+
+    /// <summary>
+    /// 章节选择按钮点击
+    /// </summary>
+    private void OnChapterSelectBtnClick()
+    {
+        // 显示章节选择面板
+        UIManager.GetInstance().ShowPanel<ChapterSelectPanel>(
+            "ChapterSelectPanel",
+            "VNovelizerRes/VNPrefabs/UI/ChapterSelect",
+            E_UI_Layer.Middle,
+            null
+        );
+    }
+
     /// <summary>
     /// 加载游戏按钮点击
     /// </summary>
@@ -435,14 +515,20 @@ public class MainMenuPanel : BasePanel
         
         // 检查是否存在存档
         bool hasSave = false;
+        // 检查是否存在可继续的存档
+        bool hasContinueSave = false;
+
         if (SaveManager.GetInstance() != null)
         {
             var saveDataList = SaveManager.GetInstance().GetAllSaveData();
             hasSave = saveDataList != null && saveDataList.Count > 0;
+            hasContinueSave = SaveManager.GetInstance().IsSaveExists(VNSaveSlots.ContinueSaveSlotIndex);
         }
         
         loadGameBtn.interactable = hasSave;
-        
+
+        continueGameBtn.interactable = hasContinueSave;
+
         if (hasSave)
         {
             Debug.Log("[MainMenuPanel] 检测到存档，加载按钮已启用");
@@ -451,7 +537,16 @@ public class MainMenuPanel : BasePanel
         {
             Debug.Log("[MainMenuPanel] 未检测到存档，加载按钮已禁用");
         }
+
+        if (hasContinueSave)
+        {
+            Debug.Log("[MainMenuPanel] 检测到可继续的存档，继续游戏按钮已启用");
+        }
+        else
+        {
+            Debug.Log("[MainMenuPanel] 未检测到可继续的存档，继续游戏按钮已禁用");
+        }
     }
-    
+
     #endregion
 }

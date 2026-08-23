@@ -17,7 +17,7 @@ public enum JsonType
 public class JsonManager :BaseManager<JsonManager>
 {
     //储存Json数据 序列化
-    public void SaveData(object data, string fileName, JsonType type = JsonType.LitJson) 
+    public void   SaveData(object data, string fileName,JsonType type = JsonType.LitJson) 
     {
         //确定存储路径
         string path = Application.persistentDataPath + "/" + fileName + ".json";
