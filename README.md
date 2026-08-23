@@ -43,7 +43,7 @@
 ### 环境要求
 
 - **Unity Editor**：`2023.1.0f1` 或更高版本
-- **依赖**：TextMeshPro、Input System（Unity 内置）；项目已包含 Koreographer 运行时插件
+- **依赖**：TextMeshPro、Input System（Unity 内置）；Koreographer 插件（项目已包含）
 - **代码编辑器**：`Visual Studio 2022` 及以上版本（或其他支持最新 C# 语法的 IDE，如 `Rider / VS Code`）
 
 ### 启动步骤
