@@ -63,5 +63,6 @@
 - **联系方式**：lyf502802@163.com
 
 ## 📂 资源致谢
-- VNovelizer 视觉小说框架
-- 项目内美术、音乐资源
+- [VNovelizer 视觉小说引擎框架（感谢这位大佬！）](https://github.com/Fakecorps/VNovelizer)
+- 游戏美术资源网站
+  * [Kenney](https://kenney.nl/)
