@@ -29,12 +29,14 @@
 
 ## 🛠️ 技术栈与架构亮点
 
-- **引擎与语言**：Unity 2023.1.0f1、C#、TextMeshPro、Unity Input System。
-- **模块化目录**：`GameStart`、`Shared`、`Rhythm/Runtime` 与 `Integration/VNovelizer` 按职责拆分，节奏玩法和视觉小说系统可以独立调试与复用。
-- **数据驱动内容**：`Resources/VNovelizerRes/VNScripts/*.csv` 管理剧情，Koreography 资源管理节奏谱面，新增章节或歌曲无需修改核心流程代码。
-- **事件驱动会话控制**：`RhythmSessionController` 通过分数、生命、连击、暂停、完成/失败等事件向 HUD 和剧情桥接层广播状态，降低模块耦合。
-- **对象池与场景恢复**：音符和命中特效使用对象池减少运行时 Instantiate/Destroy；跨场景流程保存脚本名与行 ID，回到视觉小说后由 `VNManager` 正式恢复剧情状态。
-- **可配置的故事/独立模式**：节奏会话支持 Story 与 MusicGame 两种模式，可分别控制扣血、分数、HUD 显示及歌曲结束行为。
+- **游戏引擎**：Unity
+- **编程语言**：C#
+- **亮点展示**：
+  * **模块化目录**：`GameStart`、`Shared`、`Rhythm/Runtime` 与 `Integration/VNovelizer` 按职责拆分，节奏玩法和视觉小说系统可以独立调试与复用。
+  * **数据驱动内容**：`Resources/VNovelizerRes/VNScripts/*.csv` 管理剧情，Koreography 资源管理节奏谱面，新增章节或歌曲无需修改核心流程代码。
+  * **事件驱动会话控制**：`RhythmSessionController` 通过分数、生命、连击、暂停、完成/失败等事件向 HUD 和剧情桥接层广播状态，降低模块耦合。
+  * **对象池与场景恢复**：音符和命中特效使用对象池减少运行时 Instantiate/Destroy；跨场景流程保存脚本名与行 ID，回到视觉小说后由 `VNManager` 正式恢复剧情状态。
+  * **可配置的故事/独立模式**：节奏会话支持 Story 与 MusicGame 两种模式，可分别控制扣血、分数、HUD 显示及歌曲结束行为。
 
 ## 🚀 如何运行本项目
 
@@ -61,7 +63,5 @@
 - **联系方式**：lyf502802@163.com
 
 ## 📂 资源致谢
-
-- Unity、TextMeshPro、Input System
-- Koreographer（Sonic Bloom）
-- VNovelizer 视觉小说框架及项目内美术、音乐资源
+- VNovelizer 视觉小说框架
+- 项目内美术、音乐资源
