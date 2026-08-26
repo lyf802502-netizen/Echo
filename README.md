@@ -10,10 +10,12 @@
 ## 🎵 游戏内容展示
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width="48.5%" title="开始画面" alt="开始画面"/>
+  <img src="https://github.com/user-attachments/assets/fe269071-392a-4ae3-8795-b59b51ba4017" width="48.4%" title="开始画面" alt="开始画面"/>
   &nbsp;&nbsp;
   <img src="https://github.com/user-attachments/assets/5eb6b34f-4d18-48e1-a18e-9657a5dc4705" width="48%" title="剧情画面" alt="剧情画面"/>
   <br>
+  <img src="https://github.com/user-attachments/assets/604b68d0-b441-4815-ba01-6280b6302a1a" width="48.4%" title="加载游戏" alt="加载游戏"/>
+  &nbsp;&nbsp;
   <img src="https://github.com/user-attachments/assets/c5b58199-64f1-4159-a424-9eb384074be8" width="48%" title="音游画面" alt="音游画面"/>
 </p>
 
