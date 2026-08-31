@@ -632,7 +632,7 @@ Transform:
   m_GameObject: {fileID: 31789719}
   m_LocalRotation: {x: 0.42261827, y: -0, z: -0, w: 0.9063079}
   m_LocalPosition: {x: 0, y: -1.5, z: 2}
-  m_LocalScale: {x: 2.1362588, y: 2.1362588, z: 1}
+  m_LocalScale: {x: 2.1485908, y: 2.1485908, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2125014813}
@@ -5493,10 +5493,10 @@ Camera:
   m_LensShift: {x: 0, y: 0}
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 0
-    y: 0.0029447377
-    width: 1
-    height: 0.9941105
+    x: 0.0000603199
+    y: 0
+    width: 0.99987936
+    height: 1
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
@@ -6948,7 +6948,7 @@ RectTransform:
   m_GameObject: {fileID: 1452998324}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.9941105, y: 0.9941105, z: 0.9941105}
+  m_LocalScale: {x: 0.9998492, y: 0.9998492, z: 0.9998492}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 761683805}
@@ -8257,10 +8257,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4db68dbf428061a4eb91462e0ce9d37e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mode: 0
-  useHpSystem: 0
-  showScore: 0
-  showHpBar: 0
+  mode: 1
+  useHpSystem: 1
+  showScore: 1
+  showHpBar: 1
   autoCompleteOnSongEnd: 1
   replaySceneName: Game
   mainMenuSceneName: GameModeSelectScene

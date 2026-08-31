@@ -26,6 +26,7 @@ public class VNProjectConfigEditor : Editor
         var excelGroup = CreateGroup("Excel 导表工具 (Editor Only)");
         excelGroup.Add(new PropertyField(serializedObject.FindProperty("ExcelSourceFolder"), "Excel 源文件夹"));
         excelGroup.Add(new PropertyField(serializedObject.FindProperty("CsvOutputFolder"), "CSV 输出文件夹"));
+        excelGroup.Add(new PropertyField(serializedObject.FindProperty("AutoConvertExcel"), "保存 Excel 后自动转换为 CSV"));
         root.Add(excelGroup);
 
         // 3. 运行时资源路径 (Foldout)

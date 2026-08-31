@@ -174,7 +174,7 @@ public class UIEditorWindow : EditorWindow
 
         switch (type)
         {
-            case UIType.Gameplay: return config.UI_VNGamePlayPath;
+            case UIType.Gameplay: return config.UI_VNGamePath;
             case UIType.Pause: return config.UI_PausePath;
             case UIType.History: return config.UI_HistoryPath;
             case UIType.SaveLoad: return config.UI_SaveLoadPath;

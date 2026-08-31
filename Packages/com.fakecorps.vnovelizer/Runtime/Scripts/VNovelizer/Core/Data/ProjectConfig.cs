@@ -90,7 +90,7 @@ public class VNProjectConfig : ScriptableObject
 
     [Header("=== UI预制件加载路径 (UI Prefabs) ===")]
     [Tooltip("VNGamePanel在Resources下的相对路径 (例如: VNovelizerRes/VNPrefabs/UI/VNGamePlay)")]
-    public string UI_VNGamePlayPath = "VNovelizerRes/VNPrefabs/UI/VNGamePlay";
+    public string UI_VNGamePath = "VNovelizerRes/VNPrefabs/UI/VNGamePlay";
 
     [Tooltip("HistoryPanel在Resources下的相对路径 (例如: VNovelizerRes/VNPrefabs/UI/VNGamePlay)")]
     public string UI_HistoryPath = "VNovelizerRes/VNPrefabs/UI/History";
@@ -98,13 +98,16 @@ public class VNProjectConfig : ScriptableObject
     [Tooltip("SettingsPanel在Resources下的相对路径 (例如: VNovelizerRes/VNPrefabs/UI/Settings)")]
     public string UI_SettingsPath = "VNovelizerRes/VNPrefabs/UI/Settings";
 
-    [Tooltip("SaveLoad在Resources下的相对路径 (例如: VNovelizerRes/VNPrefabs/UI/SaveLoad)")]
+    [Tooltip("SaveLoadPanel在Resources下的相对路径 (例如: VNovelizerRes/VNPrefabs/UI/SaveLoad)")]
     public string UI_SaveLoadPath = "VNovelizerRes/VNPrefabs/UI/SaveLoad";
 
-    [Tooltip("Confirm在Resources下的相对路径 (例如: VNPrefabs/UI/Confirm)")]
+    [Tooltip("ConfirmPanel在Resources下的相对路径 (例如: VNPrefabs/UI/Confirm)")]
     public string UI_ConfirmPath = "VNovelizerRes/VNPrefabs/UI/Confirm";
 
-    [Tooltip("Confirm在Resources下的相对路径 (例如: VNovelizerRes/VNPrefabs/UI/VNGameplay/Prompt)")]
+    [Tooltip("ChapterCardPanel在Resources下的相对路径 (例如: VNPrefabs/UI/Confirm)")]
+    public string UI_ChapterCardPath = "VNovelizerRes/VNPrefabs/UI/ChapterCard";
+
+    [Tooltip("Prompt在Resources下的相对路径 (例如: VNovelizerRes/VNPrefabs/UI/VNGameplay/Prompt)")]
     public string UI_PromptPath = "VNovelizerRes/VNPrefabs/UI/VNGameplay/Prompt";
 
     [Tooltip("Choice在Resources下的相对路径 (例如: VNovelizerRes/VNPrefabs/UI/Choice)")]

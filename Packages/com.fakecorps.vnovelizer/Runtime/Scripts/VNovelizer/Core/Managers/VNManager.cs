@@ -287,7 +287,7 @@ public class VNManager : BaseManager<VNManager>
         // 3. 显示 UI (异步过程)
         if (StoryLines.Count > 0)
         {
-            UIManager.GetInstance().ShowPanel<VNGameplayPanel>("VNGameplayPanel", VNProjectConfig.Instance.UI_VNGamePlayPath, E_UI_Layer.Middle, (panel) =>
+            UIManager.GetInstance().ShowPanel<VNGameplayPanel>("VNGameplayPanel", VNProjectConfig.Instance.UI_VNGamePath, E_UI_Layer.Middle, (panel) =>
             {
                 // 【修复】确保游戏状态设置为 Gameplay（场景回放时需要）
                 GameStateManager.GetInstance().SetState(GameState.Gameplay);
@@ -1564,7 +1564,7 @@ public class VNManager : BaseManager<VNManager>
         if (StoryLines.Count > 0)
         {
             // UIManager会自动注册任务 "ui_VNGameplayPanel"，我们只需要等待它完成
-            UIManager.GetInstance().ShowPanel<VNGameplayPanel>("VNGameplayPanel", VNProjectConfig.Instance.UI_VNGamePlayPath, E_UI_Layer.Middle, (panel) =>
+            UIManager.GetInstance().ShowPanel<VNGameplayPanel>("VNGameplayPanel", VNProjectConfig.Instance.UI_VNGamePath, E_UI_Layer.Middle, (panel) =>
             {
                 isGameplayPanelLoadCallbackFired = true;
                 VNDebug.LogVerbose("[VNManager] VNGameplayPanel 的 ShowPanel 回调已触发");
@@ -1615,7 +1615,7 @@ public class VNManager : BaseManager<VNManager>
 
             UIManager.GetInstance().ShowPanel<VNGameplayPanel>(
                 "VNGameplayPanel",
-                VNProjectConfig.Instance.UI_VNGamePlayPath,
+                VNProjectConfig.Instance.UI_VNGamePath,
                 E_UI_Layer.Middle,
                 (panel) =>
                 {
@@ -1888,7 +1888,7 @@ public class VNManager : BaseManager<VNManager>
         // 2. 显示 UI (异步过程，UIManager会自动注册并跟踪进度)
         if (StoryLines.Count > 0)
         {
-            UIManager.GetInstance().ShowPanel<VNGameplayPanel>("VNGameplayPanel", VNProjectConfig.Instance.UI_VNGamePlayPath, E_UI_Layer.Middle, (panel) =>
+            UIManager.GetInstance().ShowPanel<VNGameplayPanel>("VNGameplayPanel", VNProjectConfig.Instance.UI_VNGamePath, E_UI_Layer.Middle, (panel) =>
             {
                 // UI加载完成，UIManager会自动完成任务
                 // 注意：这里不立即执行游戏逻辑，等待OnContinueGameLoadingCompleted回调

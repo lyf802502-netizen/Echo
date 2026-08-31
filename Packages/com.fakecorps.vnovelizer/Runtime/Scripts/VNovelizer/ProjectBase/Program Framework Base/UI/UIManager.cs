@@ -652,7 +652,7 @@ public class UIManager : BaseManager<UIManager>
 //     return true;
 // }
 
-    public void ShowPanel<T>(string panelName,string loadPath, E_UI_Layer layer, UnityAction<T> callBack) where T : BasePanel
+    public void ShowPanel<T>(string panelName, string loadPath, E_UI_Layer layer, UnityAction<T> callBack) where T : BasePanel
     {
         
         if (panelName == "LoadingProgressPanel")
