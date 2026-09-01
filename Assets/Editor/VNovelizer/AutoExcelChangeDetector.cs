@@ -9,6 +9,10 @@ using UnityEngine;
 /// </summary>
 public class AutoExcelChangeDetector : AssetPostprocessor
 {
+    private const string StatusMessageKey = "VNovelizer.AutoExcelConversion.Status";
+    private const string StatusIsErrorKey = "VNovelizer.AutoExcelConversion.IsError";
+    private const string StatusVersionKey = "VNovelizer.AutoExcelConversion.Version";
+
     // 更新日期：2026-08-31。记录单个文件失败次数，避免无限重试。
     private static readonly Dictionary<string, int> retryCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
@@ -87,6 +91,7 @@ public class AutoExcelChangeDetector : AssetPostprocessor
         if (string.IsNullOrEmpty(csvOutputFolder))
         {
             Debug.LogError("CSV 输出文件夹未配置，无法自动转换剧本。");
+            PublishStatus("自动转换失败：CSV 输出文件夹未配置。", true);
             pendingFiles.Clear();
             return;
         }
@@ -121,6 +126,8 @@ public class AutoExcelChangeDetector : AssetPostprocessor
         if (successCount > 0)
         {
             AssetDatabase.Refresh();
+            // 发布剧本转换完成的状态信息，之后在剧本管理器（ScriptManager）中可以读取到这个状态信息，并显示给用户
+            PublishStatus($"自动转换完成，共处理 {successCount} 个剧本。", false);
             Debug.Log($"自动转换完成，共处理 {successCount} 个剧本。");
         }
     }
@@ -135,6 +142,7 @@ public class AutoExcelChangeDetector : AssetPostprocessor
         if (retryCount > MaxRetryCount)
         {
             retryCounts.Remove(assetPath);
+            PublishStatus($"自动转换失败：{Path.GetFileName(assetPath)}", true);
             Debug.LogError($"剧本自动转换已重试 {MaxRetryCount} 次，仍然失败：{assetPath}\n{exception.Message}");
             return;
         }
@@ -142,7 +150,18 @@ public class AutoExcelChangeDetector : AssetPostprocessor
         retryCounts[assetPath] = retryCount;
         pendingFiles.Add(assetPath);
         ScheduleProcess(RetryDelaySeconds);
+        PublishStatus($"自动转换暂时失败，正在重试：{Path.GetFileName(assetPath)}", true);
         Debug.LogWarning($"剧本自动转换失败，将在 1 秒后重试（{retryCount}/{MaxRetryCount}）：{assetPath}");
+    }
+
+    // [2026-8-31] 新增
+    // 通过 SessionState 向 VNovelizer.Editor 程序集传递最近一次转换结果。
+    private static void PublishStatus(string message, bool isError)
+    {
+        SessionState.SetString(StatusMessageKey, message);
+        SessionState.SetBool(StatusIsErrorKey, isError);
+        int version = SessionState.GetInt(StatusVersionKey, 0);
+        SessionState.SetInt(StatusVersionKey, version + 1);
     }
 
     private static string NormalizePath(string path)

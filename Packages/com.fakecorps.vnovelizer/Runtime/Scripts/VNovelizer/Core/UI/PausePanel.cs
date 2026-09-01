@@ -254,8 +254,7 @@ public class PausePanel : BasePanel
         UIManager.GetInstance().HidePanel("PausePanel");
         
         // 恢复游戏状态
-        if (GameStateManager.GetInstance() != null && 
-            GameStateManager.GetInstance().CurrentState == GameState.Pause)
+        if (GameStateManager.GetInstance() != null && GameStateManager.GetInstance().CurrentState == GameState.Pause)
         {
             GameStateManager.GetInstance().RestoreState();
             AnimationCompat.StopAll();

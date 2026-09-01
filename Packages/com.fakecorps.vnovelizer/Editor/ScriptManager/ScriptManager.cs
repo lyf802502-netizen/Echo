@@ -10,6 +10,11 @@ using System.Collections.Generic;
 
 public class ScriptManagerWindow : EditorWindow
 {
+    // 自动转换状态由项目侧监听器写入 SessionState，避免包程序集依赖项目程序集。
+    private const string AutoConversionStatusKey = "VNovelizer.AutoExcelConversion.Status";
+    private const string AutoConversionStatusIsErrorKey = "VNovelizer.AutoExcelConversion.IsError";
+    private const string AutoConversionStatusVersionKey = "VNovelizer.AutoExcelConversion.Version";
+
     private ListView scriptList;
     private MultiColumnListView previewTable;
     private Label statusLabel;
@@ -18,6 +23,7 @@ public class ScriptManagerWindow : EditorWindow
     private string excelFolderPath;
 
     private FileInfo selectedFile;
+    private int lastAutoConversionStatusVersion = -1;
 
     //新增：让剧本管理器中的分隔条在窗口内有移动范围
     private TwoPaneSplitView splitView;
@@ -175,6 +181,29 @@ public class ScriptManagerWindow : EditorWindow
         root.schedule.Execute(ClampSplitPosition);
 
         RefreshList();
+        root.schedule.Execute(UpdateAutoConversionStatus).Every(250);
+    }
+
+    /// <summary>
+    /// 更新日期：2026-08-31。将自动转换结果显示到剧本管理器状态区域。
+    /// </summary>
+    private void UpdateAutoConversionStatus()
+    {
+        if (statusLabel == null)
+            return;
+
+        int version = SessionState.GetInt(AutoConversionStatusVersionKey, 0);
+        if (version == lastAutoConversionStatusVersion)
+            return;
+
+        lastAutoConversionStatusVersion = version;
+        string message = SessionState.GetString(AutoConversionStatusKey, "");
+        if (string.IsNullOrEmpty(message))
+            return;
+
+        bool isError = SessionState.GetBool(AutoConversionStatusIsErrorKey, false);
+        statusLabel.text = message;
+        statusLabel.style.color = isError ? new Color(0.95f, 0.35f, 0.35f) : Color.green;
     }
 
     private void ClampSplitPosition()

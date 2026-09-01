@@ -426,10 +426,6 @@ PrefabInstance:
       propertyPath: m_MovementType
       value: 2
       objectReference: {fileID: 0}
-    - target: {fileID: 8524760872028242555, guid: 9fda38b8a7e88174ea98010c77d2dfbb, type: 3}
-      propertyPath: m_HorizontalScrollbar
-      value: 
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 3650355730519040555, guid: 9fda38b8a7e88174ea98010c77d2dfbb, type: 3}

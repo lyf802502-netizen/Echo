@@ -3,23 +3,30 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using UnityEngine.InputSystem;
 
 /// <summary>
 /// 历史记录面板 (优化版)
 /// </summary>
 public class HistoryPanel : BasePanel
 {
+    // [2026-08-31] 今日修复说明：历史记录打开时需等待异步条目和布局完成，再定位到底部。
+    // [2026-08-31] 同时使用 CanvasGroup 隐藏刷新过程，避免玩家看到内容从顶部跳到底部。
+    // [2026-08-31] 鼠标滚轮交由 Unity ScrollRect 处理，避免与 Elastic 模式重复滚动。
     // UI组件
     [SerializeField] private Button closeButton;
     private ScrollRect historyScrollView;
-    private Transform contentTransform;
+    private RectTransform contentTransform;
+    private CanvasGroup panelCanvasGroup;
 
     // 记录当前正在显示的 Item 列表，以便回收
     private List<GameObject> activeItems = new List<GameObject>();
 
     // 预制体加载路径 (作为对象池的 Key)
     private string itemResPath;
+    private int refreshVersion;
+    // [2026-08-31] 每次刷新使用独立批次编号，旧批次回调不得修改新面板。
+    private readonly Dictionary<int, int> pendingItemLoads = new Dictionary<int, int>();
+    private Coroutine scrollCoroutine;
 
     protected override void Awake()
     {
@@ -28,6 +35,7 @@ public class HistoryPanel : BasePanel
         //获取组件
         closeButton = GetControl<Button>("H_Close");
         historyScrollView = GetControl<ScrollRect>("H_Scroll View");
+        panelCanvasGroup = GetComponent<CanvasGroup>();
 
         if (closeButton != null)
             closeButton.onClick.AddListener(OnCloseButtonClick);
@@ -50,47 +58,30 @@ public class HistoryPanel : BasePanel
         // 每次打开面板时设置状态
         GameStateManager.GetInstance().SetState(GameState.History);
         
-        // 每次打开面板时刷新数据
-        RefreshHistoryDisplay();
-
-        // 强制刷新 UI 布局并滚动到底部
-        StartCoroutine(ScrollToBottom());
-    }
-    
-    private void Update()
-    {
-        // 当HistoryPanel打开时，鼠标滚轮用于滚动ScrollView，而不是打开/关闭面板
-        if (gameObject.activeSelf && historyScrollView != null)
+        // 每次打开面板时刷新数据；滚动定位必须等异步条目和布局都完成。
+        // [2026-08-31] 先隐藏面板，直到条目生成、布局刷新和滚动定位全部完成。
+        int currentVersion = ++refreshVersion;
+        if (panelCanvasGroup != null)
         {
-            // 检测鼠标滚轮输入（使用新版Input System）
-            if (Mouse.current != null)
-            {
-                Vector2 scrollDelta = Mouse.current.scroll.ReadValue();
-                
-                // 如果滚轮有输入，手动滚动ScrollView
-                if (scrollDelta.y != 0f)
-                {
-                    // 计算新的滚动位置
-                    float scrollSpeed = 0.1f; // 滚动速度，可以根据需要调整
-                    float currentPosition = historyScrollView.verticalNormalizedPosition;
-                    float newPosition = currentPosition + (scrollDelta.y * scrollSpeed);
-                    
-                    // 限制在0-1范围内（0=底部，1=顶部）
-                    newPosition = Mathf.Clamp01(newPosition);
-                    
-                    // 应用滚动
-                    historyScrollView.verticalNormalizedPosition = newPosition;
-                }
-            }
+            panelCanvasGroup.alpha = 0f;
+            panelCanvasGroup.blocksRaycasts = false;
         }
+        RefreshHistoryDisplay(currentVersion);
+
+        if (scrollCoroutine != null)
+            StopCoroutine(scrollCoroutine);
+        scrollCoroutine = StartCoroutine(ScrollToBottom(currentVersion));
     }
 
     /// <summary>
     /// 刷新历史记录显示
     /// </summary>
-    private void RefreshHistoryDisplay()
+    private void RefreshHistoryDisplay(int currentVersion)
     {
         if (contentTransform == null) return;
+
+        // [2026-08-31] 记录本批次待完成的异步加载数量，ScrollToBottom 会等待它归零。
+        pendingItemLoads[currentVersion] = 0;
 
         // 1. 回收旧对象到对象池
         for (int i = activeItems.Count - 1; i >= 0; i--)
@@ -103,9 +94,12 @@ public class HistoryPanel : BasePanel
 
         // 2. 从 GlobalDataManager 获取所有历史数据
         List<HistoryEntry> logs = GlobalDataManager.GetInstance().GetHistoryLog();
+        if (logs == null || logs.Count == 0)
+        {
+            Debug.Log("[HistoryPanel] 读取到 0 条历史记录");
+            return;
+        }
         Debug.Log($"[HistoryPanel] 读取到 {logs.Count} 条历史记录");
-
-        if (logs == null || logs.Count == 0) return;
 
         // 3. 生成新条目
         for (int i = 0; i < logs.Count; i++)
@@ -114,8 +108,24 @@ public class HistoryPanel : BasePanel
             HistoryEntry prev = (i > 0) ? logs[i - 1] : null;
 
             // 从对象池获取对象 (异步/同步)
+            pendingItemLoads[currentVersion]++;
             PoolManager.GetInstance().GetObj(itemResPath, (obj) =>
             {
+                if (pendingItemLoads.ContainsKey(currentVersion))
+                    pendingItemLoads[currentVersion]--;
+
+                // 面板已重新刷新或关闭时，丢弃旧批次的异步结果。
+                // [2026-08-31] 面板关闭或重新刷新后，旧回调只归还对象，不得写入当前 Content。
+                if (currentVersion != refreshVersion || !isActiveAndEnabled)
+                {
+                    if (obj != null)
+                        PoolManager.GetInstance().PushObj(itemResPath, obj);
+                    return;
+                }
+
+                if (obj == null)
+                    return;
+
                 // 初始化 Item
                 SetupHistoryItem(obj, current, prev);
 
@@ -192,20 +202,43 @@ public class HistoryPanel : BasePanel
     /// <summary>
     /// 滚动到底部
     /// </summary>
-    private IEnumerator ScrollToBottom()
+    private IEnumerator ScrollToBottom(int currentVersion)
     {
-        // 等待一点时间，确保 PoolManager 的异步加载完成
-        yield return new WaitForSeconds(0.02f);
-        // 等待当前帧结束，确保 UI Layout 重新计算完毕
-        yield return new WaitForEndOfFrame();
+        // [2026-08-31] 等待所有条目加载完成，防止 Content 高度继续变化导致底部定位失效。
+        // 等待本次刷新发起的所有异步加载回调完成。
+        while (currentVersion == refreshVersion && pendingItemLoads.TryGetValue(currentVersion, out int pending) && pending > 0)
+            yield return null;
 
-        // 再次强制刷新 Content 的布局，确保 Content 高度正确
+        if (currentVersion != refreshVersion || !isActiveAndEnabled)
+            yield break;
+
+        // ContentSizeFitter/VerticalLayoutGroup 可能还需要一个完整帧。
+        // [2026-08-31] 在帧末等待布局系统完成，再计算 ScrollRect 的有效滚动范围。
+        yield return new WaitForEndOfFrame();
+        Canvas.ForceUpdateCanvases();
+
         if (contentTransform != null)
             LayoutRebuilder.ForceRebuildLayoutImmediate(contentTransform.GetComponent<RectTransform>());
 
-        // 滚动到底部 (0 = 底部, 1 = 顶部)
+        // ScrollRect 的 verticalNormalizedPosition: 0 = 底部, 1 = 顶部。
         if (historyScrollView != null)
+        {
+            historyScrollView.StopMovement();
+            // [2026-08-31] verticalNormalizedPosition = 0 表示底部，即最新一条历史记录。
             historyScrollView.verticalNormalizedPosition = 0f;
+            // 布局组件可能在下一帧再次改写位置，再确认一次。
+            yield return null;
+            Canvas.ForceUpdateCanvases();
+            historyScrollView.verticalNormalizedPosition = 0f;
+        }
+        // [2026-08-31] 所有内容准备完成后才显示面板，消除打开时从顶部到底部的跳变。
+        if (panelCanvasGroup != null)
+        {
+            panelCanvasGroup.alpha = 1f;
+            panelCanvasGroup.blocksRaycasts = true;
+        }
+        scrollCoroutine = null;
+        pendingItemLoads.Remove(currentVersion);
     }
 
     private void OnCloseButtonClick()
@@ -219,6 +252,7 @@ public class HistoryPanel : BasePanel
     {
         // 清理资源
         activeItems.Clear();
+        pendingItemLoads.Clear();
         if (GameStateManager.GetInstance() != null && 
             GameStateManager.GetInstance().CurrentState == GameState.History)
         {
