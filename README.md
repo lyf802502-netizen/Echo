@@ -68,6 +68,7 @@
 
 ## 📂 资源致谢
 - [VNovelizer 视觉小说引擎框架（感谢这位大佬！）](https://github.com/Fakecorps/VNovelizer)
+- [Koreographer](https://www.koreographer.com/)
 - 游戏美术资源网站
   * [Kenney](https://kenney.nl/)
   * [Top Game Assets](https://itch.io/game-assets)
